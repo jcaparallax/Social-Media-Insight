@@ -1,0 +1,51 @@
+Build a social media analytics chat app for a marketing agency client (FUNO).
+
+Stack:
+- Frontend: React + TypeScript (Vite)
+- Charts: Recharts (already installed)
+- Backend: Express with /api/chat endpoint
+- State: in-memory only, no database, no session persistence
+- Auth: none for V1
+
+Style:
+- Agency logo (parallax-logo.png) on the left of the header
+- Client logo (client-logo.png) on the right — store the client logo path as a config constant so it is easy to swap per client
+- Header background: #004CFF
+- Primary accent (buttons, chart fills): #ED7C22
+- Background: #ffffff, Text: #000000
+
+Layout:
+- Split screen: chat panel 40% left, chart canvas 60% right
+- Mobile responsive (panels stack vertically on mobile)
+
+Chat panel:
+- 6 predefined question chips at the top (clickable, send the question automatically):
+  1. ¿Cuántos followers crecimos en febrero?
+  2. ¿Cómo fue el engagement vs enero?
+  3. Resumen de pauta Meta en febrero
+  4. Comparativo últimos 3 meses
+  5. ¿Cuál fue el mejor contenido del mes?
+  6. ¿Qué recomiendas para marzo?
+- Chat messages below chips
+- Text input + send button at the bottom
+- No persistence — refresh resets the chat
+
+Canvas panel:
+- On load (before any chat): show KPI summary cards automatically using mock data:
+  - Total followers per platform (Instagram, Facebook, TikTok)
+  - Net follower growth this month
+  - Engagement rate per platform
+  - Organic reach
+- Below cards: a bar chart showing follower growth for the last 3 months (Dec/Jan/Feb)
+- When Claude returns a CHART_DATA JSON block, render it as a Recharts chart replacing the default. Strip CHART_DATA from the visible chat text.
+
+Data:
+- Hardcode mock JSON for Patio Santa Fe (Feb 2026) in a config file: src/data/mock-santa-fe.ts
+- The frontend sends this data as context in every Claude API call
+- The /api/data endpoint serves this mock file
+
+PDF export:
+- "Exportar PDF" button triggers window.print() with print CSS optimized for both panels
+
+Do NOT add features I haven't listed. Ask before adding anything extra.
+Start with Plan Mode so I can review before building.
