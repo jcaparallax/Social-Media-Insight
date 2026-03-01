@@ -1,4 +1,6 @@
-import { google } from "googleapis";
+import { getUncachableGoogleSheetClient } from "./googleSheetsClient";
+import { PLAZAS, type PlazaConfig } from "./config/plazas";
+import type { MonthlyData, PlazaData, SheetsDataResponse } from "@shared/schema";
 
 const SPREADSHEET_ID = "15PdHhPO-ecHavV27SLfkh6Nx-fXGM06As0-5O_i8vvs";
 const SHEET_NAMES = [
@@ -8,21 +10,22 @@ const SHEET_NAMES = [
   "Meta Ads",
 ];
 
-const TARGET_MONTHS = ["2025-11", "2025-12", "2026-01", "2026-02"];
-
-function getAuth() {
-  const credsJson = process.env.GOOGLE_SHEETS_CREDENTIALS;
-  if (!credsJson) throw new Error("GOOGLE_SHEETS_CREDENTIALS secret not set");
-  const creds = JSON.parse(credsJson);
-  return new google.auth.GoogleAuth({
-    credentials: creds,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
-  });
+function computeTargetMonths(): string[] {
+  const now = new Date();
+  const months: string[] = [];
+  for (let i = 4; i >= 1; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    months.push(`${y}-${m}`);
+  }
+  return months;
 }
 
-async function readSheet(sheetName: string): Promise<Record<string, string>[]> {
-  const auth = getAuth();
-  const sheets = google.sheets({ version: "v4", auth });
+async function readSheet(
+  sheetName: string,
+): Promise<Record<string, string>[]> {
+  const sheets = await getUncachableGoogleSheetClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
     range: `'${sheetName}'`,
@@ -33,7 +36,7 @@ async function readSheet(sheetName: string): Promise<Record<string, string>[]> {
   return rows.slice(1).map((row) => {
     const obj: Record<string, string> = {};
     headers.forEach((h, i) => {
-      obj[h] = row[i] ?? "";
+      obj[h] = (row as string[])[i] ?? "";
     });
     return obj;
   });
@@ -55,7 +58,9 @@ function getYearMonth(dateStr: string): string {
   return `${y}-${m}`;
 }
 
-function groupByMonth<T extends Record<string, string>>(rows: T[]): Record<string, T[]> {
+function groupByMonth<T extends Record<string, string>>(
+  rows: T[],
+): Record<string, T[]> {
   const byMonth: Record<string, T[]> = {};
   for (const row of rows) {
     const ym = getYearMonth(row["Report: Date"] || row["Report: Start date"]);
@@ -67,24 +72,31 @@ function groupByMonth<T extends Record<string, string>>(rows: T[]): Record<strin
   return byMonth;
 }
 
-export async function fetchSheetsData() {
-  const [fbRows, igRows, igFollowersRows, adsRows] = await Promise.all(
-    SHEET_NAMES.map((name) => readSheet(name))
-  );
+function filterForPlaza(
+  rows: Record<string, string>[],
+  field: string,
+  value: string,
+): Record<string, string>[] {
+  return rows.filter((r) => r[field] === value);
+}
 
-  const fbFiltered = fbRows.filter(
-    (r) => r["Account: Account name"] === "Patio Santa Fe"
+function filterAdsForPlaza(
+  rows: Record<string, string>[],
+  keyword: string,
+): Record<string, string>[] {
+  const lower = keyword.toLowerCase();
+  return rows.filter((r) =>
+    (r["Campaign: Campaign name"] || "").toLowerCase().includes(lower),
   );
-  const igFiltered = igRows.filter(
-    (r) => r["Account: Account name"] === "patiosantafe"
-  );
-  const igFollowersFiltered = igFollowersRows.filter(
-    (r) => r["Account: Account name"] === "patiosantafe"
-  );
-  const adsFiltered = adsRows.filter((r) =>
-    (r["Campaign: Campaign name"] || "").toLowerCase().includes("f1_01sfe")
-  );
+}
 
+function buildMonthlyData(
+  targetMonths: string[],
+  fbFiltered: Record<string, string>[],
+  igFiltered: Record<string, string>[],
+  igFollowersFiltered: Record<string, string>[],
+  adsFiltered: Record<string, string>[],
+): Record<string, MonthlyData> {
   const fbByMonth = groupByMonth(fbFiltered);
   const igByMonth = groupByMonth(igFiltered);
   const igFollowersByMonth = groupByMonth(igFollowersFiltered);
@@ -97,19 +109,19 @@ export async function fetchSheetsData() {
     if (rows.length === 0) return 0;
     const sorted = [...rows].sort(
       (a, b) =>
-        new Date(b["Report: Date"] || b["Report: Start date"] || "").getTime() -
-        new Date(a["Report: Date"] || a["Report: Start date"] || "").getTime()
+        new Date(
+          b["Report: Date"] || b["Report: Start date"] || "",
+        ).getTime() -
+        new Date(
+          a["Report: Date"] || a["Report: Start date"] || "",
+        ).getTime(),
     );
     return parseNum(sorted[0]["Engagement: Lifetime followers"]);
   };
 
-  const monthly: Record<string, {
-    facebook: { reach: number; engagement: number; followers_total: number };
-    instagram: { reach: number; engagement: number; new_followers: number; likes: number; comments: number; saves: number; shares: number };
-    meta_ads: { spend: number; impressions: number; clicks: number; ctr: number };
-  }> = {};
+  const monthly: Record<string, MonthlyData> = {};
 
-  for (const ym of TARGET_MONTHS) {
+  for (const ym of targetMonths) {
     const fbMonth = fbByMonth[ym] || [];
     const igMonth = igByMonth[ym] || [];
     const igFollowersMonth = igFollowersByMonth[ym] || [];
@@ -122,12 +134,16 @@ export async function fetchSheetsData() {
       facebook: {
         reach: sumField(fbMonth, "Performance: Reach"),
         engagement: sumField(fbMonth, "Engagement: Posts engagements"),
-        followers_total: latestFbFollowers(fbMonth) || latestFbFollowers(fbFiltered),
+        followers_total:
+          latestFbFollowers(fbMonth) || latestFbFollowers(fbFiltered),
       },
       instagram: {
         reach: sumField(igMonth, "Performance: Reach"),
         engagement: sumField(igMonth, "Performance: Engagements"),
-        new_followers: sumField(igFollowersMonth, "Engagement: New followers"),
+        new_followers: sumField(
+          igFollowersMonth,
+          "Engagement: New followers",
+        ),
         likes: sumField(igMonth, "Engagement: Likes"),
         comments: sumField(igMonth, "Engagement: Comments"),
         saves: sumField(igMonth, "Engagement: Saves"),
@@ -137,14 +153,70 @@ export async function fetchSheetsData() {
         spend: sumField(adsMonth, "Performance: Amount spent"),
         impressions: adsImpressionSum,
         clicks: adsClickSum,
-        ctr: adsImpressionSum > 0 ? (adsClickSum / adsImpressionSum) * 100 : 0,
+        ctr:
+          adsImpressionSum > 0 ? (adsClickSum / adsImpressionSum) * 100 : 0,
       },
     };
   }
 
+  return monthly;
+}
+
+export async function fetchSheetsData(
+  plazaIds: string[],
+): Promise<SheetsDataResponse> {
+  const targetMonths = computeTargetMonths();
+
+  const [fbRows, igRows, igFollowersRows, adsRows] = await Promise.all(
+    SHEET_NAMES.map((name) => readSheet(name)),
+  );
+
+  const useAll =
+    plazaIds.length === 0 ||
+    (plazaIds.length === 1 && plazaIds[0] === "all");
+  const selectedPlazas: PlazaConfig[] = useAll
+    ? PLAZAS
+    : PLAZAS.filter((p) => plazaIds.includes(p.id));
+
+  const plazas: Record<string, PlazaData> = {};
+
+  for (const plaza of selectedPlazas) {
+    const fbFiltered = filterForPlaza(
+      fbRows,
+      "Account: Account name",
+      plaza.fbAccount,
+    );
+    const igFiltered = filterForPlaza(
+      igRows,
+      "Account: Account name",
+      plaza.igAccount,
+    );
+    const igFollowersFiltered = filterForPlaza(
+      igFollowersRows,
+      "Account: Account name",
+      plaza.igAccount,
+    );
+    const adsFiltered = filterAdsForPlaza(adsRows, plaza.adsCampaignKeyword);
+
+    const monthly = buildMonthlyData(
+      targetMonths,
+      fbFiltered,
+      igFiltered,
+      igFollowersFiltered,
+      adsFiltered,
+    );
+
+    plazas[plaza.id] = {
+      months: targetMonths,
+      monthly,
+    };
+  }
+
   return {
-    plaza: "Patio Santa Fe",
-    months: TARGET_MONTHS,
-    monthly,
+    plazas,
+    availablePlazas: PLAZAS.map((p) => ({
+      id: p.id,
+      displayName: p.displayName,
+    })),
   };
 }

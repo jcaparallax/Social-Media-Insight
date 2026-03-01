@@ -1,31 +1,51 @@
 # FUNO Social Media Analytics Chat App
 
 ## Overview
-A social media analytics chat app for marketing agency Parallax, serving client FUNO (Patio Santa Fe). Features a split-screen layout with a Claude AI-powered chat panel and a data visualization canvas.
+A social media analytics chat app for marketing agency Parallax, serving client FUNO with a multi-plaza architecture. Features a split-screen layout with a Claude AI-powered chat panel and a data visualization canvas. Supports filtering and aggregation across multiple shopping center plazas.
 
 ## Architecture
 - **Frontend**: React + TypeScript (Vite), Recharts for charts (including PieChart), Tailwind CSS
-- **Backend**: Express with `/api/chat` endpoint using Anthropic Claude (via Replit AI Integrations)
-- **Data Source**: Google Sheets API via service account — returns monthly aggregations for Nov 2025 through Feb 2026
+- **Backend**: Express with `/api/chat`, `/api/sheets-data`, `/api/plazas` endpoints using Anthropic Claude (via Replit AI Integrations)
+- **Data Source**: Google Sheets API via Replit Google Sheets Connector (OAuth) — returns monthly aggregations for the last 4 complete calendar months, dynamically computed
 - **State**: In-memory only, no database, no session persistence
 - **Auth**: None (V1)
 
+## Multi-Plaza Architecture
+- Plaza configs live in `server/config/plazas.ts` — each plaza has id, displayName, fbAccount, igAccount, adsCampaignKeyword
+- `fetchSheetsData(plazaIds)` accepts an array of plaza IDs (or ["all"]) and filters data per-plaza
+- API returns data keyed by plaza ID: `{ plazas: { [plazaId]: { months, monthly } }, availablePlazas }`
+- Frontend aggregates data across selected plazas for KPIs and charts
+- Adding a new plaza: add entry to `PLAZAS` array in `server/config/plazas.ts`
+
 ## Key Files
-- `client/src/pages/home.tsx` - Main page with split layout (chat + canvas), KPI cards, platform summary table, 4 default charts
+- `client/src/pages/home.tsx` - Main page with split layout (chat + canvas), KPI cards, platform summary table, 4 default charts, plaza multi-select
 - `client/src/data/config.ts` - Client/agency logos, colors
-- `server/routes.ts` - `/api/chat` (Claude AI), `/api/data` (mock data), `/api/sheets-data` (Google Sheets) endpoints
-- `server/sheets.ts` - Google Sheets data fetching with multi-month aggregation (TARGET_MONTHS: 2025-11 through 2026-02)
-- `server/mock-data.ts` - Server-side mock data (fallback for AI context)
+- `server/routes.ts` - `/api/chat` (Claude AI), `/api/sheets-data` (Google Sheets), `/api/plazas` (plaza list) endpoints
+- `server/sheets.ts` - Google Sheets data fetching with multi-plaza filtering and dynamic month computation
+- `server/config/plazas.ts` - Plaza configuration array with filter values per data source
+- `server/googleSheetsClient.ts` - Google Sheets Replit Connector auth client (OAuth, token refresh)
+- `shared/schema.ts` - Zod schemas, TypeScript types for API requests and multi-plaza responses
 
 ## Data Pipeline
 - Spreadsheet ID: `15PdHhPO-ecHavV27SLfkh6Nx-fXGM06As0-5O_i8vvs`
 - Sheets read: "Facebook Page Insights", "Instagram Page Insights", "Instagram Followers 30 días", "Meta Ads"
-- Filtered for Patio Santa Fe (FB: "Patio Santa Fe", IG: "patiosantafe", Ads: campaigns containing "f1_01sfe")
-- Aggregated by month for 4 target months (Nov 2025 – Feb 2026)
-- API returns `{ plaza, months: string[], monthly: Record<string, MonthlyData> }`
-- Credentials: Google Service Account JSON stored in `GOOGLE_SHEETS_CREDENTIALS` Replit Secret
+- Filtered per-plaza using config values (FB account name, IG account name, Ads campaign keyword)
+- Target months: dynamically computed as last 4 complete calendar months
+- Aggregated by month per plaza
+- Credentials: Google Sheets Replit Connector (OAuth) — replaces old service account approach
+
+## API Endpoints
+- `GET /api/plazas` — returns `[{ id, displayName }]` from config
+- `GET /api/sheets-data?plazas=all` or `?plazas=patio-santa-fe,otra-plaza` — returns `{ plazas, availablePlazas }`
+- `POST /api/chat` — body: `{ messages, context?, plazaIds?, months? }` — fetches filtered data for AI context
 
 ## Dashboard Components
+### Plaza Multi-Select (Header)
+- Dropdown in header next to client logo
+- Options: "Todas las plazas" + individual plazas
+- Default: all selected
+- Changing selection re-fetches data and updates dashboard
+
 ### KPI Cards (5 cards)
 1. **Alcance Total** — FB + IG combined reach, deltas vs previous month and 3 months ago
 2. **Engagement Rate** — total engagements / total reach * 100, delta vs previous month
@@ -47,6 +67,7 @@ A social media analytics chat app for marketing agency Parallax, serving client 
 - Every AI response must include a text answer (2-3 sentences) plus at least one CHART_DATA block
 - Chart type matches question: trend → line, comparison → bar, composition → pie
 - Supports bar, line, area, and pie chart types
+- plazaIds sent with every chat request for context
 
 ## Design
 - Accent color: #ED7C22 (buttons, chart fills)
@@ -55,4 +76,4 @@ A social media analytics chat app for marketing agency Parallax, serving client 
 - Mobile responsive (stacks vertically)
 
 ## Dependencies
-- `googleapis` - Google Sheets API client for fetching real data
+- `googleapis` - Google Sheets API client for fetching real data (auth via Replit Connector)

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Copy, Check, ArrowUp, X, RefreshCw } from "lucide-react";
+import { Copy, Check, ArrowUp, X, RefreshCw, ChevronDown } from "lucide-react";
 import { SiInstagram, SiFacebook, SiTiktok } from "react-icons/si";
 import { marked } from "marked";
 import {
@@ -31,12 +31,20 @@ marked.setOptions({
   gfm: true,
 });
 
-const MONTH_LABELS: Record<string, string> = {
-  "2025-11": "Nov",
-  "2025-12": "Dic",
-  "2026-01": "Ene",
-  "2026-02": "Feb",
-};
+function getMonthLabel(ym: string): string {
+  const [yearStr, monthStr] = ym.split("-");
+  const monthNames: Record<string, string> = {
+    "01": "Ene", "02": "Feb", "03": "Mar", "04": "Abr",
+    "05": "May", "06": "Jun", "07": "Jul", "08": "Ago",
+    "09": "Sep", "10": "Oct", "11": "Nov", "12": "Dic",
+  };
+  return monthNames[monthStr] || ym;
+}
+
+function getMonthYear(ym: string): string {
+  const [yearStr] = ym.split("-");
+  return yearStr;
+}
 
 interface MonthlyData {
   facebook: { reach: number; engagement: number; followers_total: number };
@@ -44,10 +52,81 @@ interface MonthlyData {
   meta_ads: { spend: number; impressions: number; clicks: number; ctr: number };
 }
 
-interface SheetsApiData {
-  plaza: string;
+interface PlazaData {
   months: string[];
   monthly: Record<string, MonthlyData>;
+}
+
+interface PlazaSummary {
+  id: string;
+  displayName: string;
+}
+
+interface SheetsApiResponse {
+  plazas: Record<string, PlazaData>;
+  availablePlazas: PlazaSummary[];
+}
+
+interface AggregatedData {
+  months: string[];
+  monthly: Record<string, MonthlyData>;
+}
+
+function aggregatePlazaData(response: SheetsApiResponse, selectedPlazaIds: string[]): AggregatedData {
+  const plazaKeys = selectedPlazaIds.length === 0 || selectedPlazaIds.includes("all")
+    ? Object.keys(response.plazas)
+    : selectedPlazaIds.filter((id) => id in response.plazas);
+
+  if (plazaKeys.length === 0) {
+    return { months: [], monthly: {} };
+  }
+
+  if (plazaKeys.length === 1) {
+    const p = response.plazas[plazaKeys[0]];
+    return { months: p.months, monthly: p.monthly };
+  }
+
+  const allMonths = new Set<string>();
+  for (const key of plazaKeys) {
+    for (const m of response.plazas[key].months) {
+      allMonths.add(m);
+    }
+  }
+  const months = Array.from(allMonths).sort();
+
+  const monthly: Record<string, MonthlyData> = {};
+  for (const ym of months) {
+    const agg: MonthlyData = {
+      facebook: { reach: 0, engagement: 0, followers_total: 0 },
+      instagram: { reach: 0, engagement: 0, new_followers: 0, likes: 0, comments: 0, saves: 0, shares: 0 },
+      meta_ads: { spend: 0, impressions: 0, clicks: 0, ctr: 0 },
+    };
+    let totalImpressions = 0;
+    let totalClicks = 0;
+    for (const key of plazaKeys) {
+      const m = response.plazas[key].monthly[ym];
+      if (!m) continue;
+      agg.facebook.reach += m.facebook.reach;
+      agg.facebook.engagement += m.facebook.engagement;
+      agg.facebook.followers_total += m.facebook.followers_total;
+      agg.instagram.reach += m.instagram.reach;
+      agg.instagram.engagement += m.instagram.engagement;
+      agg.instagram.new_followers += m.instagram.new_followers;
+      agg.instagram.likes += m.instagram.likes;
+      agg.instagram.comments += m.instagram.comments;
+      agg.instagram.saves += m.instagram.saves;
+      agg.instagram.shares += m.instagram.shares;
+      agg.meta_ads.spend += m.meta_ads.spend;
+      agg.meta_ads.impressions += m.meta_ads.impressions;
+      agg.meta_ads.clicks += m.meta_ads.clicks;
+      totalImpressions += m.meta_ads.impressions;
+      totalClicks += m.meta_ads.clicks;
+    }
+    agg.meta_ads.ctr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+    monthly[ym] = agg;
+  }
+
+  return { months, monthly };
 }
 
 interface ChatMessage {
@@ -210,14 +289,108 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function KpiCards({ apiData }: { apiData: SheetsApiData }) {
-  const months = apiData.months;
+function PlazaMultiSelect({
+  availablePlazas,
+  selectedPlazaIds,
+  onChange,
+}: {
+  availablePlazas: PlazaSummary[];
+  selectedPlazaIds: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const allSelected = selectedPlazaIds.includes("all") || selectedPlazaIds.length === 0;
+
+  const label = allSelected
+    ? "Todas las plazas"
+    : selectedPlazaIds.length === 1
+      ? availablePlazas.find((p) => p.id === selectedPlazaIds[0])?.displayName || selectedPlazaIds[0]
+      : `${selectedPlazaIds.length} plazas`;
+
+  function toggleAll() {
+    onChange(["all"]);
+  }
+
+  function togglePlaza(id: string) {
+    if (allSelected) {
+      onChange([id]);
+    } else if (selectedPlazaIds.includes(id)) {
+      const next = selectedPlazaIds.filter((p) => p !== id);
+      if (next.length === 0) {
+        onChange(["all"]);
+      } else {
+        onChange(next);
+      }
+    } else {
+      const next = [...selectedPlazaIds, id];
+      if (next.length === availablePlazas.length) {
+        onChange(["all"]);
+      } else {
+        onChange(next);
+      }
+    }
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border text-foreground bg-transparent transition-colors"
+        data-testid="button-plaza-select"
+      >
+        {label}
+        <ChevronDown className="w-3.5 h-3.5" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-50 min-w-[200px] rounded-md border border-border bg-card shadow-md py-1">
+          <button
+            onClick={toggleAll}
+            className={`w-full text-left px-3 py-2 text-xs transition-colors ${allSelected ? "bg-primary/10 font-semibold text-primary" : "text-foreground hover:bg-muted"}`}
+            data-testid="button-plaza-all"
+          >
+            Todas las plazas
+          </button>
+          {availablePlazas.map((plaza) => {
+            const isSelected = allSelected || selectedPlazaIds.includes(plaza.id);
+            return (
+              <button
+                key={plaza.id}
+                onClick={() => togglePlaza(plaza.id)}
+                className={`w-full text-left px-3 py-2 text-xs transition-colors ${!allSelected && isSelected ? "bg-primary/10 font-semibold text-primary" : "text-foreground hover:bg-muted"}`}
+                data-testid={`button-plaza-${plaza.id}`}
+              >
+                {plaza.displayName}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function KpiCards({ data }: { data: AggregatedData }) {
+  const months = data.months;
+  if (months.length < 2) return null;
+
   const current = months[months.length - 1];
   const prev = months[months.length - 2];
   const threeMonthsAgo = months[0];
-  const cur = apiData.monthly[current];
-  const prv = apiData.monthly[prev];
-  const old = apiData.monthly[threeMonthsAgo];
+  const cur = data.monthly[current];
+  const prv = data.monthly[prev];
+  const old = data.monthly[threeMonthsAgo];
 
   const curReach = cur.facebook.reach + cur.instagram.reach;
   const prevReach = prv.facebook.reach + prv.instagram.reach;
@@ -229,12 +402,14 @@ function KpiCards({ apiData }: { apiData: SheetsApiData }) {
   const curEngRate = curReach > 0 ? +(curEngagements / curReach * 100).toFixed(2) : 0;
   const prevEngRate = prevReach > 0 ? +(prevEngagements / prevReach * 100).toFixed(2) : 0;
 
+  const currentLabel = getMonthLabel(current);
+
   return (
     <div className="grid grid-cols-2 xl:grid-cols-3 gap-3 mb-5">
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
         <p className="text-xs mb-1 font-bold text-[#392e22]">Alcance Total</p>
         <p className="text-2xl font-bold text-foreground" data-testid="text-total-reach">{formatNumber(curReach)}</p>
-        <p className="text-[10px] text-muted-foreground">FB + IG — {MONTH_LABELS[current]}</p>
+        <p className="text-[10px] text-muted-foreground">FB + IG — {currentLabel}</p>
         <div className="flex items-center gap-2 mt-1">
           <DeltaBadge value={pctDelta(curReach, prevReach)} />
           <span className="text-[10px] text-muted-foreground">vs mes anterior</span>
@@ -258,7 +433,7 @@ function KpiCards({ apiData }: { apiData: SheetsApiData }) {
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
         <p className="text-xs mb-1 font-bold text-[#392e22]">Interacciones Totales</p>
         <p className="text-2xl font-bold text-foreground" data-testid="text-total-interactions">{formatNumber(curEngagements)}</p>
-        <p className="text-[10px] text-muted-foreground">IG + FB — {MONTH_LABELS[current]}</p>
+        <p className="text-[10px] text-muted-foreground">IG + FB — {currentLabel}</p>
         <div className="flex items-center gap-2 mt-1">
           <DeltaBadge value={pctDelta(curEngagements, prevEngagements)} />
           <span className="text-[10px] text-muted-foreground">vs mes anterior</span>
@@ -271,7 +446,7 @@ function KpiCards({ apiData }: { apiData: SheetsApiData }) {
           <p className="text-xs font-bold text-[#392e22]">Nuevos Seguidores IG</p>
         </div>
         <p className="text-2xl font-bold text-foreground" data-testid="text-ig-new-followers">{formatNumber(cur.instagram.new_followers)}</p>
-        <p className="text-[10px] text-muted-foreground">{MONTH_LABELS[current]}</p>
+        <p className="text-[10px] text-muted-foreground">{currentLabel}</p>
         <div className="flex items-center gap-2 mt-1">
           <DeltaBadge value={pctDelta(cur.instagram.new_followers, prv.instagram.new_followers)} />
           <span className="text-[10px] text-muted-foreground">vs mes anterior</span>
@@ -285,7 +460,7 @@ function KpiCards({ apiData }: { apiData: SheetsApiData }) {
           <p className="text-[10px] text-muted-foreground italic">Sin pauta este mes</p>
         ) : (
           <>
-            <p className="text-[10px] text-muted-foreground">MXN — {MONTH_LABELS[current]}</p>
+            <p className="text-[10px] text-muted-foreground">MXN — {currentLabel}</p>
             <div className="flex items-center gap-2 mt-1">
               <DeltaBadge value={pctDelta(cur.meta_ads.spend, prv.meta_ads.spend)} />
               <span className="text-[10px] text-muted-foreground">vs mes anterior</span>
@@ -297,18 +472,17 @@ function KpiCards({ apiData }: { apiData: SheetsApiData }) {
   );
 }
 
-function PlatformTable({ apiData }: { apiData: SheetsApiData }) {
-  const months = apiData.months;
+function PlatformTable({ data }: { data: AggregatedData }) {
+  const months = data.months;
+  if (months.length < 2) return null;
+
   const current = months[months.length - 1];
   const prev = months[months.length - 2];
-  const cur = apiData.monthly[current];
-  const prv = apiData.monthly[prev];
+  const cur = data.monthly[current];
+  const prv = data.monthly[prev];
 
   const fbEngRate = cur.facebook.reach > 0 ? +(cur.facebook.engagement / cur.facebook.reach * 100).toFixed(2) : 0;
   const igEngRate = cur.instagram.reach > 0 ? +((cur.instagram.likes + cur.instagram.comments + cur.instagram.saves + cur.instagram.shares) / cur.instagram.reach * 100).toFixed(2) : 0;
-
-  const igInteractions = cur.instagram.likes + cur.instagram.comments + cur.instagram.saves + cur.instagram.shares;
-  const prevIgInteractions = prv.instagram.likes + prv.instagram.comments + prv.instagram.saves + prv.instagram.shares;
 
   const rows = [
     {
@@ -326,7 +500,7 @@ function PlatformTable({ apiData }: { apiData: SheetsApiData }) {
       color: "#E1306C",
       icon: <SiInstagram size={14} />,
       reach: cur.instagram.reach,
-      interactions: igInteractions,
+      interactions: cur.instagram.likes + cur.instagram.comments + cur.instagram.saves + cur.instagram.shares,
       engRate: igEngRate,
       newFollowers: formatNumber(cur.instagram.new_followers),
       vsPrev: pctDelta(cur.instagram.reach, prv.instagram.reach),
@@ -380,24 +554,26 @@ function PlatformTable({ apiData }: { apiData: SheetsApiData }) {
 
 const PIE_COLORS = ["#E1306C", "#F77737", "#FCAF45", "#833AB4"];
 
-function DefaultCharts({ apiData }: { apiData: SheetsApiData }) {
+function DefaultCharts({ data }: { data: AggregatedData }) {
   const themeColors = useChartColors();
-  const months = apiData.months;
+  const months = data.months;
+  if (months.length < 2) return null;
+
   const current = months[months.length - 1];
-  const cur = apiData.monthly[current];
+  const cur = data.monthly[current];
 
   const reachData = months.map((ym) => ({
-    name: MONTH_LABELS[ym] || ym,
-    Facebook: apiData.monthly[ym].facebook.reach,
-    Instagram: apiData.monthly[ym].instagram.reach,
+    name: getMonthLabel(ym),
+    Facebook: data.monthly[ym].facebook.reach,
+    Instagram: data.monthly[ym].instagram.reach,
   }));
 
   const engRateData = months.map((ym) => {
-    const m = apiData.monthly[ym];
+    const m = data.monthly[ym];
     const fbRate = m.facebook.reach > 0 ? +(m.facebook.engagement / m.facebook.reach * 100).toFixed(2) : 0;
     const igTotal = m.instagram.likes + m.instagram.comments + m.instagram.saves + m.instagram.shares;
     const igRate = m.instagram.reach > 0 ? +(igTotal / m.instagram.reach * 100).toFixed(2) : 0;
-    return { name: MONTH_LABELS[ym] || ym, Facebook: fbRate, Instagram: igRate };
+    return { name: getMonthLabel(ym), Facebook: fbRate, Instagram: igRate };
   });
 
   const pieData = [
@@ -409,9 +585,11 @@ function DefaultCharts({ apiData }: { apiData: SheetsApiData }) {
   const pieTotal = pieData.reduce((a, b) => a + b.value, 0);
 
   const followersData = months.map((ym) => ({
-    name: MONTH_LABELS[ym] || ym,
-    Seguidores: apiData.monthly[ym].instagram.new_followers,
+    name: getMonthLabel(ym),
+    Seguidores: data.monthly[ym].instagram.new_followers,
   }));
+
+  const currentYear = getMonthYear(current);
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -446,7 +624,7 @@ function DefaultCharts({ apiData }: { apiData: SheetsApiData }) {
       </div>
 
       <div className="bg-card rounded-xl p-5 border border-card-border shadow-sm">
-        <h3 className="text-sm mb-4 font-bold text-[#392e22]" data-testid="text-pie-chart-title">Tipo de Interacciones — Instagram {MONTH_LABELS[current]} 2026</h3>
+        <h3 className="text-sm mb-4 font-bold text-[#392e22]" data-testid="text-pie-chart-title">Tipo de Interacciones — Instagram {getMonthLabel(current)} {currentYear}</h3>
         <ResponsiveContainer width="100%" height={260}>
           <PieChart>
             <Pie
@@ -564,32 +742,35 @@ function DynamicChart({ chartData }: { chartData: ChartData }) {
   );
 }
 
-const FALLBACK_API_DATA: SheetsApiData = {
-  plaza: "Patio Santa Fe",
-  months: ["2025-11", "2025-12", "2026-01", "2026-02"],
-  monthly: {
-    "2025-11": {
-      facebook: { reach: 0, engagement: 0, followers_total: 0 },
-      instagram: { reach: 0, engagement: 0, new_followers: 0, likes: 0, comments: 0, saves: 0, shares: 0 },
-      meta_ads: { spend: 0, impressions: 0, clicks: 0, ctr: 0 },
-    },
-    "2025-12": {
-      facebook: { reach: 0, engagement: 0, followers_total: 0 },
-      instagram: { reach: 0, engagement: 0, new_followers: 0, likes: 0, comments: 0, saves: 0, shares: 0 },
-      meta_ads: { spend: 0, impressions: 0, clicks: 0, ctr: 0 },
-    },
-    "2026-01": {
-      facebook: { reach: 0, engagement: 0, followers_total: 0 },
-      instagram: { reach: 0, engagement: 0, new_followers: 0, likes: 0, comments: 0, saves: 0, shares: 0 },
-      meta_ads: { spend: 0, impressions: 0, clicks: 0, ctr: 0 },
-    },
-    "2026-02": {
-      facebook: { reach: 0, engagement: 0, followers_total: 0 },
-      instagram: { reach: 0, engagement: 0, new_followers: 0, likes: 0, comments: 0, saves: 0, shares: 0 },
-      meta_ads: { spend: 0, impressions: 0, clicks: 0, ctr: 0 },
-    },
-  },
+const EMPTY_MONTHLY: MonthlyData = {
+  facebook: { reach: 0, engagement: 0, followers_total: 0 },
+  instagram: { reach: 0, engagement: 0, new_followers: 0, likes: 0, comments: 0, saves: 0, shares: 0 },
+  meta_ads: { spend: 0, impressions: 0, clicks: 0, ctr: 0 },
 };
+
+function computeFallbackMonths(): string[] {
+  const now = new Date();
+  const months: string[] = [];
+  for (let i = 4; i >= 1; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    months.push(`${y}-${m}`);
+  }
+  return months;
+}
+
+function buildFallbackResponse(): SheetsApiResponse {
+  const months = computeFallbackMonths();
+  const monthly: Record<string, MonthlyData> = {};
+  for (const m of months) {
+    monthly[m] = { ...EMPTY_MONTHLY };
+  }
+  return {
+    plazas: { fallback: { months, monthly } },
+    availablePlazas: [],
+  };
+}
 
 export default function Home() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -599,32 +780,59 @@ export default function Home() {
   const [canvasOpen, setCanvasOpen] = useState(true);
   const [questionChips, setQuestionChips] = useState<string[]>([]);
   const [chipsLoading, setChipsLoading] = useState(true);
-  const [apiData, setApiData] = useState<SheetsApiData>(FALLBACK_API_DATA);
-  const [dataContext, setDataContext] = useState(JSON.stringify(FALLBACK_API_DATA, null, 2));
+  const [sheetsResponse, setSheetsResponse] = useState<SheetsApiResponse>(buildFallbackResponse());
+  const [selectedPlazaIds, setSelectedPlazaIds] = useState<string[]>(["all"]);
+  const [availablePlazas, setAvailablePlazas] = useState<PlazaSummary[]>([]);
   const [dataLoaded, setDataLoaded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const aggregatedData = useMemo(
+    () => aggregatePlazaData(sheetsResponse, selectedPlazaIds),
+    [sheetsResponse, selectedPlazaIds],
+  );
+
+  const dataContext = useMemo(
+    () => JSON.stringify({ plazas: sheetsResponse.plazas, availablePlazas: sheetsResponse.availablePlazas }, null, 2),
+    [sheetsResponse],
+  );
+
   useEffect(() => {
-    async function fetchSheetsData() {
+    async function loadPlazas() {
       try {
-        const res = await fetch("/api/sheets-data");
+        const res = await fetch("/api/plazas");
         if (res.ok) {
           const data = await res.json();
-          console.log("[DEBUG] Patio Santa Fe — Full monthly aggregated data:", JSON.parse(JSON.stringify(data)));
-          setApiData(data);
-          setDataContext(JSON.stringify(data, null, 2));
+          setAvailablePlazas(data);
+        }
+      } catch {}
+    }
+    loadPlazas();
+  }, []);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const plazasParam = selectedPlazaIds.includes("all") ? "all" : selectedPlazaIds.join(",");
+        const res = await fetch(`/api/sheets-data?plazas=${encodeURIComponent(plazasParam)}`);
+        if (res.ok) {
+          const data: SheetsApiResponse = await res.json();
+          setSheetsResponse(data);
+          if (data.availablePlazas.length > 0) {
+            setAvailablePlazas(data.availablePlazas);
+          }
         }
       } catch {}
       setDataLoaded(true);
     }
-    fetchSheetsData();
-  }, []);
+    fetchData();
+  }, [selectedPlazaIds]);
 
   useEffect(() => {
     if (!dataLoaded) return;
     async function fetchChips() {
       try {
+        const plazaIds = selectedPlazaIds.includes("all") ? ["all"] : selectedPlazaIds;
         const res = await apiRequest("POST", "/api/chat", {
           messages: [
             {
@@ -634,6 +842,7 @@ export default function Home() {
             },
           ],
           context: dataContext,
+          plazaIds,
         });
         const data = await res.json();
         const stripped = data.response.replace(/\n?SUGGESTED:\s*\[[\s\S]*?\]\s*$/, "").replace(/CHART_DATA:\s*\{[^\n]*\}/g, "").trim();
@@ -672,9 +881,11 @@ export default function Home() {
     setIsLoading(true);
 
     try {
+      const plazaIds = selectedPlazaIds.includes("all") ? ["all"] : selectedPlazaIds;
       const res = await apiRequest("POST", "/api/chat", {
         messages: newMessages,
         context: dataContext,
+        plazaIds,
       });
       const data = await res.json();
       const { cleanText: afterSuggested, suggestions } = parseSuggested(data.response);
@@ -713,7 +924,19 @@ export default function Home() {
     window.print();
   }
 
-  const currentMonthLabel = MONTH_LABELS[apiData.months[apiData.months.length - 1]] || "";
+  function handlePlazaChange(ids: string[]) {
+    setSelectedPlazaIds(ids);
+  }
+
+  const currentMonth = aggregatedData.months.length > 0 ? aggregatedData.months[aggregatedData.months.length - 1] : "";
+  const currentMonthLabel = currentMonth ? getMonthLabel(currentMonth) : "";
+  const currentYear = currentMonth ? getMonthYear(currentMonth) : "";
+
+  const canvasTitle = selectedPlazaIds.includes("all") || selectedPlazaIds.length === 0
+    ? "Todas las plazas"
+    : selectedPlazaIds.length === 1
+      ? availablePlazas.find((p) => p.id === selectedPlazaIds[0])?.displayName || selectedPlazaIds[0]
+      : `${selectedPlazaIds.length} plazas`;
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -726,12 +949,21 @@ export default function Home() {
               className="h-5 md:h-6"
               data-testid="img-agency-logo"
             />
-            <img
-              src={CLIENT_LOGO}
-              alt="FUNO"
-              className="h-5 md:h-6"
-              data-testid="img-client-logo"
-            />
+            <div className="flex items-center gap-3">
+              {availablePlazas.length > 0 && (
+                <PlazaMultiSelect
+                  availablePlazas={availablePlazas}
+                  selectedPlazaIds={selectedPlazaIds}
+                  onChange={handlePlazaChange}
+                />
+              )}
+              <img
+                src={CLIENT_LOGO}
+                alt="FUNO"
+                className="h-5 md:h-6"
+                data-testid="img-client-logo"
+              />
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6" data-testid="chat-scroll-area">
@@ -854,8 +1086,8 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-sm font-medium text-foreground">{apiData.plaza}</span>
-                  <span className="text-xs text-muted-foreground">{currentMonthLabel} 2026</span>
+                  <span className="text-sm font-medium text-foreground">{canvasTitle}</span>
+                  <span className="text-xs text-muted-foreground">{currentMonthLabel} {currentYear}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -877,9 +1109,9 @@ export default function Home() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-5">
-              <KpiCards apiData={apiData} />
-              <PlatformTable apiData={apiData} />
-              {activeChart ? <DynamicChart chartData={activeChart} /> : <DefaultCharts apiData={apiData} />}
+              <KpiCards data={aggregatedData} />
+              <PlatformTable data={aggregatedData} />
+              {activeChart ? <DynamicChart chartData={activeChart} /> : <DefaultCharts data={aggregatedData} />}
             </div>
           </div>
         )}

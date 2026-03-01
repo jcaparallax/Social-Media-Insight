@@ -1,9 +1,9 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
+import type { Server } from "http";
 import Anthropic from "@anthropic-ai/sdk";
-import { mockData } from "./mock-data";
 import { chatRequestSchema } from "@shared/schema";
 import { fetchSheetsData } from "./sheets";
+import { getPlazaSummaries } from "./config/plazas";
 
 const anthropic = new Anthropic({
   apiKey: process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY,
@@ -12,19 +12,66 @@ const anthropic = new Anthropic({
 
 export async function registerRoutes(
   httpServer: Server,
-  app: Express
+  app: Express,
 ): Promise<Server> {
+  app.get("/api/plazas", (_req, res) => {
+    res.json(getPlazaSummaries());
+  });
+
+  app.get("/api/sheets-data", async (req, res) => {
+    try {
+      const plazasParam = (req.query.plazas as string) || "all";
+      const plazaIds =
+        plazasParam === "all" ? ["all"] : plazasParam.split(",").filter(Boolean);
+      const data = await fetchSheetsData(plazaIds);
+      res.json(data);
+    } catch (error) {
+      console.error("Sheets API error:", error);
+      res.status(500).json({ error: "Failed to fetch Google Sheets data" });
+    }
+  });
+
   app.post("/api/chat", async (req, res) => {
     try {
       const parsed = chatRequestSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid request", details: parsed.error.flatten() });
+        return res.status(400).json({
+          error: "Invalid request",
+          details: parsed.error.flatten(),
+        });
       }
 
-      const { messages, context } = parsed.data;
-      const dataContext = context || JSON.stringify(mockData, null, 2);
+      const { messages, context, plazaIds, months } = parsed.data;
 
-      const systemPrompt = `You are a social media analytics assistant for Patio Santa Fe, a shopping center in Mexico City managed by Parallax digital agency. You receive structured data about the plaza social media performance across months November 2025 through February 2026. Answer questions clearly and concisely in Spanish (2-3 sentences max).
+      let dataContext = context;
+      if (!dataContext) {
+        const requestedPlazas = plazaIds ?? ["all"];
+        const sheetsData = await fetchSheetsData(requestedPlazas);
+
+        if (months && months.length > 0) {
+          for (const plazaId of Object.keys(sheetsData.plazas)) {
+            const plaza = sheetsData.plazas[plazaId];
+            const filteredMonthly: Record<string, typeof plaza.monthly[string]> = {};
+            for (const m of months) {
+              if (plaza.monthly[m]) {
+                filteredMonthly[m] = plaza.monthly[m];
+              }
+            }
+            plaza.monthly = filteredMonthly;
+            plaza.months = months.filter((m) => m in filteredMonthly);
+          }
+        }
+
+        dataContext = JSON.stringify(sheetsData, null, 2);
+      }
+
+      const plazaNames = plazaIds && plazaIds.length > 0 && plazaIds[0] !== "all"
+        ? plazaIds.join(", ")
+        : "todas las plazas";
+
+      const systemPrompt = `You are a social media analytics assistant for FUNO shopping centers in Mexico, managed by Parallax digital agency. You receive structured data about social media performance across multiple plazas and months. Answer questions clearly and concisely in Spanish (2-3 sentences max).
+
+Currently analyzing: ${plazaNames}
 
 MANDATORY CHART RULE: Every response MUST include at least one CHART_DATA block generated from relevant data. Choose chart type based on the question:
 - Trend questions → "line"
@@ -61,20 +108,6 @@ ${dataContext}`;
     } catch (error) {
       console.error("Chat API error:", error);
       res.status(500).json({ error: "Failed to get response from AI" });
-    }
-  });
-
-  app.get("/api/data", (_req, res) => {
-    res.json(mockData);
-  });
-
-  app.get("/api/sheets-data", async (_req, res) => {
-    try {
-      const data = await fetchSheetsData();
-      res.json(data);
-    } catch (error) {
-      console.error("Sheets API error:", error);
-      res.status(500).json({ error: "Failed to fetch Google Sheets data" });
     }
   });
 
