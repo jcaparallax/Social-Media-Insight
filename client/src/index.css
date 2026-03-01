@@ -12,7 +12,7 @@
   --background: 30deg 50% 96.08%;
   --foreground: 30 25% 18%;
   --border: 33 26% 87%;
-  --card: 30deg 50% 96.08%;
+  --card: 36deg 45.45% 97.84%;
   --card-foreground: 30 25% 18%;
   --card-border: 33 20% 92%;
   --sidebar: 33 30% 94%;
@@ -28,11 +28,11 @@
   --popover-border: 33 26% 87%;
   --primary: 27 87% 53%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 33 26% 87%;
+  --secondary: 30deg 50% 96.08%;
   --secondary-foreground: 30 25% 18%;
-  --muted: 30deg 50% 96.08%;
+  --muted: 30deg 87.5% 90.59%;
   --muted-foreground: 30 12% 46%;
-  --accent: 34 30% 86%;
+  --accent: 30deg 50% 96.08%;
   --accent-foreground: 30 25% 18%;
   --destructive: 0 84% 48%;
   --destructive-foreground: 0 0% 100%;
@@ -323,6 +323,86 @@
   border-radius: 50%;
   background-color: hsl(var(--primary));
   animation: thinking-bounce 1.4s ease-in-out infinite;
+}
+
+.prose-chat h1,
+.prose-chat h2,
+.prose-chat h3 {
+  font-weight: 700;
+  margin-top: 1em;
+  margin-bottom: 0.4em;
+  color: hsl(var(--foreground));
+}
+.prose-chat h1 { font-size: 1.25rem; }
+.prose-chat h2 { font-size: 1.1rem; }
+.prose-chat h3 { font-size: 1rem; }
+
+.prose-chat p {
+  margin-bottom: 0.5em;
+}
+.prose-chat p:last-child {
+  margin-bottom: 0;
+}
+
+.prose-chat strong {
+  font-weight: 700;
+}
+
+.prose-chat ul,
+.prose-chat ol {
+  padding-left: 1.25em;
+  margin-bottom: 0.5em;
+}
+.prose-chat ul { list-style-type: disc; }
+.prose-chat ol { list-style-type: decimal; }
+
+.prose-chat li {
+  margin-bottom: 0.2em;
+}
+
+.prose-chat table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75em 0;
+  font-size: 0.8rem;
+}
+.prose-chat th,
+.prose-chat td {
+  border: 1px solid hsl(var(--border));
+  padding: 0.4em 0.6em;
+  text-align: left;
+}
+.prose-chat th {
+  background-color: hsl(var(--muted));
+  font-weight: 600;
+}
+.prose-chat tr:nth-child(even) {
+  background-color: hsl(var(--muted) / 0.4);
+}
+
+.prose-chat code {
+  background-color: hsl(var(--muted));
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+.prose-chat pre {
+  background-color: hsl(var(--muted));
+  padding: 0.75em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+.prose-chat pre code {
+  padding: 0;
+  background: none;
+}
+
+.prose-chat blockquote {
+  border-left: 3px solid hsl(var(--primary));
+  padding-left: 0.75em;
+  margin: 0.5em 0;
+  color: hsl(var(--muted-foreground));
 }
 
 @media print {

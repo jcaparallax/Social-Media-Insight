@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Copy, Check, ArrowUp, X, RefreshCw } from "lucide-react";
 import { SiInstagram, SiFacebook, SiTiktok } from "react-icons/si";
+import { marked } from "marked";
 import {
   BarChart,
   Bar,
@@ -23,9 +24,19 @@ import {
 import { mockData, mockDataContext } from "@/data/mock-santa-fe";
 import { apiRequest } from "@/lib/queryClient";
 
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+});
+
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+}
+
+function MarkdownContent({ content }: { content: string }) {
+  const html = useMemo(() => marked.parse(content) as string, [content]);
+  return <div className="prose-chat" dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
 interface ChartData {
@@ -409,7 +420,7 @@ export default function Home() {
                         className="text-sm leading-relaxed max-w-full text-foreground"
                         data-testid={`text-message-${i}`}
                       >
-                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                        <MarkdownContent content={msg.content} />
                       </div>
                       <div className="mt-1.5">
                         <CopyButton text={msg.content} />
