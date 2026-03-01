@@ -32,6 +32,20 @@ marked.setOptions({
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  suggestions?: string[];
+}
+
+function parseSuggested(text: string): { cleanText: string; suggestions: string[] } {
+  const match = text.match(/\n?SUGGESTED:\s*(\[[\s\S]*?\])\s*$/);
+  if (match) {
+    try {
+      const suggestions = JSON.parse(match[1]) as string[];
+      if (Array.isArray(suggestions) && suggestions.length > 0) {
+        return { cleanText: text.replace(match[0], "").trim(), suggestions };
+      }
+    } catch {}
+  }
+  return { cleanText: text, suggestions: [] };
 }
 
 function MarkdownContent({ content }: { content: string }) {
@@ -328,14 +342,15 @@ export default function Home() {
         context: mockDataContext,
       });
       const data = await res.json();
-      const { cleanText, chartData } = parseChartData(data.response);
+      const { cleanText: afterChart, chartData } = parseChartData(data.response);
+      const { cleanText, suggestions } = parseSuggested(afterChart);
 
       if (chartData) {
         setActiveChart(chartData);
         setCanvasOpen(true);
       }
 
-      setMessages((prev) => [...prev, { role: "assistant", content: cleanText }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: cleanText, suggestions }]);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -425,6 +440,21 @@ export default function Home() {
                       <div className="mt-1.5">
                         <CopyButton text={msg.content} />
                       </div>
+                      {msg.suggestions && msg.suggestions.length > 0 && i === messages.length - 1 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {msg.suggestions.map((s, si) => (
+                            <button
+                              key={si}
+                              onClick={() => sendMessage(s)}
+                              disabled={isLoading}
+                              className="chip-button text-sm px-4 py-2 rounded-full border border-border text-foreground bg-transparent transition-all disabled:opacity-50"
+                              data-testid={`button-suggestion-${si}`}
+                            >
+                              {s}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
