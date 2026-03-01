@@ -334,23 +334,19 @@ export default function Home() {
     <div className="h-screen flex flex-col" style={{ backgroundColor: "#FAF6F0" }}>
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         <div className={`flex flex-col h-full transition-all duration-300 ${canvasOpen ? "w-full md:w-[42%]" : "w-full"}`}>
-          <div className="flex items-center justify-between px-4 py-3 pt-[15px] pb-[15px]">
-            <div className="flex items-center gap-2">
-              <img
-                src={AGENCY_LOGO}
-                alt="Parallax"
-                className="h-5 md:h-6"
-                data-testid="img-agency-logo"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <img
-                src={CLIENT_LOGO}
-                alt="FUNO"
-                className="h-5 md:h-6"
-                data-testid="img-client-logo"
-              />
-            </div>
+          <div className="flex items-center justify-between px-[26px] pt-[25px] pb-[15px]">
+            <img
+              src={AGENCY_LOGO}
+              alt="Parallax"
+              className="h-5 md:h-6"
+              data-testid="img-agency-logo"
+            />
+            <img
+              src={CLIENT_LOGO}
+              alt="FUNO"
+              className="h-5 md:h-6"
+              data-testid="img-client-logo"
+            />
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6" data-testid="chat-scroll-area">
