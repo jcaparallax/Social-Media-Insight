@@ -226,9 +226,9 @@ function KpiCards({ data }: { data: typeof fallbackMockData }) {
           <span className="text-xs font-medium text-muted-foreground">Instagram</span>
         </div>
         <p className="text-2xl font-bold text-foreground" data-testid="text-ig-followers">{formatNumber(instagram.followers)}</p>
-        <p className="text-[10px] font-bold text-[#392e22]" data-testid="subtitle-ig-followers">Seguidores totales</p>
+        <p className="text-[10px] font-bold text-[#392e22]" data-testid="subtitle-ig-followers">Nuevos seguidores {curMonth}</p>
         <p className={`text-xs font-medium ${igGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>{igGrowth >= 0 ? "+" : ""}{formatNumber(igGrowth)}</p>
-        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-ig-growth">Crecimiento {curMonth} vs {prevMonth}</p>
+        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-ig-growth">vs {prevMonth}</p>
       </div>
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
         <div className="flex items-center gap-2 mb-2">
@@ -245,10 +245,14 @@ function KpiCards({ data }: { data: typeof fallbackMockData }) {
           <SiTiktok size={16} className="text-chart-5" />
           <span className="text-xs font-medium text-muted-foreground">TikTok</span>
         </div>
-        <p className="text-2xl font-bold text-foreground" data-testid="text-tt-followers">{formatNumber(tiktok.followers)}</p>
+        <p className="text-2xl font-bold text-foreground" data-testid="text-tt-followers">{tiktok.followers > 0 ? formatNumber(tiktok.followers) : "Sin datos"}</p>
         <p className="text-[10px] font-bold text-[#392e22]" data-testid="subtitle-tt-followers">Seguidores totales</p>
-        <p className={`text-xs font-medium ${ttGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>{ttGrowth >= 0 ? "+" : ""}{formatNumber(ttGrowth)}</p>
-        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-tt-growth">Crecimiento {curMonth} vs {prevMonth}</p>
+        {tiktok.followers > 0 && (
+          <>
+            <p className={`text-xs font-medium ${ttGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>{ttGrowth >= 0 ? "+" : ""}{formatNumber(ttGrowth)}</p>
+            <p className="text-[10px] text-muted-foreground" data-testid="subtitle-tt-growth">Crecimiento {curMonth} vs {prevMonth}</p>
+          </>
+        )}
       </div>
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
         <p className="mb-1 text-[#392e22] text-[12px] font-bold">Engagement Rate</p>
@@ -316,8 +320,8 @@ function DefaultChart({ data }: { data: typeof fallbackMockData }) {
   const hasTiktok = tiktok.engagement_rate > 0;
 
   const engagementData: { platform: string; rate: number; fill: string }[] = [
-    { platform: "Facebook", rate: facebook.engagement_rate, fill: colors.chart2 },
-    { platform: "Instagram", rate: instagram.engagement_rate, fill: colors.chart1 },
+    { platform: "Facebook", rate: facebook.engagement_rate, fill: "#004CFF" },
+    { platform: "Instagram", rate: instagram.engagement_rate, fill: "#ED7C22" },
   ];
   if (hasTiktok) {
     engagementData.push({ platform: "TikTok", rate: tiktok.engagement_rate, fill: colors.chart5 });
