@@ -320,11 +320,11 @@ function DefaultChart({ data }: { data: typeof fallbackMockData }) {
   const hasTiktok = tiktok.engagement_rate > 0;
 
   const engagementData: { platform: string; rate: number; fill: string }[] = [
-    { platform: "Facebook", rate: facebook.engagement_rate, fill: "#004CFF" },
-    { platform: "Instagram", rate: instagram.engagement_rate, fill: "#ED7C22" },
+    { platform: "Facebook", rate: facebook.engagement_rate, fill: "#1877F2" },
+    { platform: "Instagram", rate: instagram.engagement_rate, fill: "#E1306C" },
   ];
   if (hasTiktok) {
-    engagementData.push({ platform: "TikTok", rate: tiktok.engagement_rate, fill: colors.chart5 });
+    engagementData.push({ platform: "TikTok", rate: tiktok.engagement_rate, fill: "#69C9D0" });
   }
 
   return (
