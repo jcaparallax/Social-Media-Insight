@@ -35,6 +35,12 @@ const SPANISH_MONTHS: Record<string, string> = {
   september: "Sep", october: "Oct", november: "Nov", december: "Dic",
 };
 
+const SPANISH_MONTHS_FULL: Record<string, string> = {
+  january: "Enero", february: "Febrero", march: "Marzo", april: "Abril",
+  may: "Mayo", june: "Junio", july: "Julio", august: "Agosto",
+  september: "Septiembre", october: "Octubre", november: "Noviembre", december: "Diciembre",
+};
+
 function getMonthLabel(date: string): string {
   const [monthName, year] = date.trim().split(/\s+/);
   const abbr = SPANISH_MONTHS[monthName.toLowerCase()] ?? monthName.slice(0, 3);
@@ -317,7 +323,7 @@ function DefaultChart() {
 
   return (
     <div className="bg-card rounded-xl p-5 border border-card-border shadow-sm">
-      <h3 className="text-sm font-semibold text-foreground mb-4">Crecimiento de Followers - Ultimos 3 Meses</h3>
+      <h3 className="text-sm font-semibold text-foreground mb-4">Crecimiento de Followers - Últimos 3 Meses</h3>
       <ResponsiveContainer width="100%" height={280}>
         <BarChart data={followerGrowth}>
           <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
@@ -632,7 +638,7 @@ export default function Home() {
                 <div className="flex items-center gap-2">
                   <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="text-sm font-medium text-foreground">{mockData.plaza}</span>
-                  <span className="text-xs text-muted-foreground">{getMonthLabel(mockData.period)}</span>
+                  <span className="text-xs text-muted-foreground">{(() => { const [m, y] = mockData.period.trim().split(/\s+/); return `${SPANISH_MONTHS_FULL[m.toLowerCase()] ?? m} ${y ?? ""}`.trim(); })()}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
