@@ -119,7 +119,11 @@ function CopyButton({ text }: { text: string }) {
 }
 
 function KpiCards() {
-  const { platforms, netGrowthThisMonth, organicReach } = mockData;
+  const { instagram, facebook, tiktok, meta_ads } = mockData;
+  const igGrowth = instagram.followers - instagram.followers_prev_month;
+  const fbGrowth = facebook.followers - facebook.followers_prev_month;
+  const ttGrowth = tiktok.followers - tiktok.followers_prev_month;
+  const totalReach = instagram.reach + facebook.reach;
 
   return (
     <div className="grid grid-cols-2 xl:grid-cols-3 gap-3 mb-5">
@@ -128,8 +132,8 @@ function KpiCards() {
           <SiInstagram className="text-[#E1306C]" size={16} />
           <span className="text-xs font-medium" style={{ color: "#6B5B4E" }}>Instagram</span>
         </div>
-        <p className="text-2xl font-bold text-gray-900" data-testid="text-ig-followers">{formatNumber(platforms.instagram.followers)}</p>
-        <p className="text-xs font-medium" style={{ color: "#16A34A" }}>+{formatNumber(platforms.instagram.followersGrowth)}</p>
+        <p className="text-2xl font-bold text-gray-900" data-testid="text-ig-followers">{formatNumber(instagram.followers)}</p>
+        <p className="text-xs font-medium" style={{ color: igGrowth >= 0 ? "#16A34A" : "#DC2626" }}>{igGrowth >= 0 ? "+" : ""}{formatNumber(igGrowth)}</p>
       </div>
 
       <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
@@ -137,8 +141,8 @@ function KpiCards() {
           <SiFacebook className="text-[#1877F2]" size={16} />
           <span className="text-xs font-medium" style={{ color: "#6B5B4E" }}>Facebook</span>
         </div>
-        <p className="text-2xl font-bold text-gray-900" data-testid="text-fb-followers">{formatNumber(platforms.facebook.followers)}</p>
-        <p className="text-xs font-medium" style={{ color: "#16A34A" }}>+{formatNumber(platforms.facebook.followersGrowth)}</p>
+        <p className="text-2xl font-bold text-gray-900" data-testid="text-fb-followers">{formatNumber(facebook.followers)}</p>
+        <p className="text-xs font-medium" style={{ color: fbGrowth >= 0 ? "#16A34A" : "#DC2626" }}>{fbGrowth >= 0 ? "+" : ""}{formatNumber(fbGrowth)}</p>
       </div>
 
       <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
@@ -146,41 +150,48 @@ function KpiCards() {
           <SiTiktok size={16} className="text-gray-900" />
           <span className="text-xs font-medium" style={{ color: "#6B5B4E" }}>TikTok</span>
         </div>
-        <p className="text-2xl font-bold text-gray-900" data-testid="text-tt-followers">{formatNumber(platforms.tiktok.followers)}</p>
-        <p className="text-xs font-medium" style={{ color: "#16A34A" }}>+{formatNumber(platforms.tiktok.followersGrowth)}</p>
-      </div>
-
-      <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-        <p className="text-xs font-medium mb-1" style={{ color: "#6B5B4E" }}>Crecimiento Neto</p>
-        <p className="text-2xl font-bold" style={{ color: "#16A34A" }} data-testid="text-net-growth">+{formatNumber(netGrowthThisMonth)}</p>
-        <p className="text-xs" style={{ color: "#9B8B7A" }}>este mes</p>
+        <p className="text-2xl font-bold text-gray-900" data-testid="text-tt-followers">{formatNumber(tiktok.followers)}</p>
+        <p className="text-xs font-medium" style={{ color: ttGrowth >= 0 ? "#16A34A" : "#DC2626" }}>{ttGrowth >= 0 ? "+" : ""}{formatNumber(ttGrowth)}</p>
       </div>
 
       <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
         <p className="text-xs font-medium mb-1" style={{ color: "#6B5B4E" }}>Engagement Rate</p>
         <div className="flex items-baseline gap-1.5">
-          <span className="text-base font-bold" style={{ color: "#E1306C" }} data-testid="text-eng-ig">{platforms.instagram.engagementRate}%</span>
-          <span className="text-base font-bold" style={{ color: "#1877F2" }} data-testid="text-eng-fb">{platforms.facebook.engagementRate}%</span>
-          <span className="text-base font-bold text-gray-900" data-testid="text-eng-tt">{platforms.tiktok.engagementRate}%</span>
+          <span className="text-base font-bold" style={{ color: "#E1306C" }} data-testid="text-eng-ig">{instagram.engagement_rate}%</span>
+          <span className="text-base font-bold" style={{ color: "#1877F2" }} data-testid="text-eng-fb">{facebook.engagement_rate}%</span>
+          <span className="text-base font-bold text-gray-900" data-testid="text-eng-tt">{tiktok.engagement_rate}%</span>
         </div>
         <p className="text-xs" style={{ color: "#9B8B7A" }}>IG / FB / TT</p>
       </div>
 
       <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-        <p className="text-xs font-medium mb-1" style={{ color: "#6B5B4E" }}>Alcance Organico</p>
-        <p className="text-2xl font-bold text-gray-900" data-testid="text-organic-reach">{formatNumber(organicReach)}</p>
-        <p className="text-xs" style={{ color: "#9B8B7A" }}>total combinado</p>
+        <p className="text-xs font-medium mb-1" style={{ color: "#6B5B4E" }}>Alcance Total</p>
+        <p className="text-2xl font-bold text-gray-900" data-testid="text-total-reach">{formatNumber(totalReach)}</p>
+        <p className="text-xs" style={{ color: "#9B8B7A" }}>IG + FB</p>
+      </div>
+
+      <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+        <p className="text-xs font-medium mb-1" style={{ color: "#6B5B4E" }}>Pauta Meta</p>
+        <p className="text-2xl font-bold text-gray-900" data-testid="text-meta-spend">${formatNumber(meta_ads.spend)}</p>
+        <p className="text-xs" style={{ color: "#9B8B7A" }}>CTR: {meta_ads.ctr}%</p>
       </div>
     </div>
   );
 }
 
 function DefaultChart() {
+  const { instagram, facebook, tiktok } = mockData;
+  const followerGrowth = [
+    { month: "Dic 2025", instagram: instagram.followers_2months_ago, facebook: facebook.followers_2months_ago, tiktok: tiktok.followers_2months_ago },
+    { month: "Ene 2026", instagram: instagram.followers_prev_month, facebook: facebook.followers_prev_month, tiktok: tiktok.followers_prev_month },
+    { month: "Feb 2026", instagram: instagram.followers, facebook: facebook.followers, tiktok: tiktok.followers },
+  ];
+
   return (
     <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
       <h3 className="text-sm font-semibold text-gray-900 mb-4">Crecimiento de Followers - Ultimos 3 Meses</h3>
       <ResponsiveContainer width="100%" height={280}>
-        <BarChart data={mockData.followerGrowth}>
+        <BarChart data={followerGrowth}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0ebe3" />
           <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#6B5B4E" }} />
           <YAxis tick={{ fontSize: 12, fill: "#6B5B4E" }} tickFormatter={(v) => formatNumber(v)} />
@@ -436,7 +447,7 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <RefreshCw className="w-3.5 h-3.5" style={{ color: "#8B7B6B" }} />
-                  <span className="text-sm font-medium text-gray-900">{mockData.client}</span>
+                  <span className="text-sm font-medium text-gray-900">{mockData.plaza}</span>
                   <span className="text-xs" style={{ color: "#8B7B6B" }}>{mockData.period}</span>
                 </div>
               </div>
