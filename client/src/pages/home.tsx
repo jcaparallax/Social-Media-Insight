@@ -15,6 +15,7 @@ import {
   Line,
   AreaChart,
   Area,
+  LabelList,
 } from "recharts";
 import {
   AGENCY_LOGO,
@@ -284,6 +285,28 @@ function KpiCards() {
   );
 }
 
+function DefaultChartTooltip({ active, payload, label }: any) {
+  const { instagram, facebook, tiktok } = mockData;
+  const colors = useChartColors();
+  if (!active || !payload?.length) return null;
+  const engRates: Record<string, number> = {
+    instagram: instagram.engagement_rate,
+    facebook: facebook.engagement_rate,
+    tiktok: tiktok.engagement_rate,
+  };
+  return (
+    <div style={{ background: "var(--card)", borderRadius: "8px", border: `1px solid ${colors.border}`, padding: "8px 12px", fontSize: "12px" }}>
+      <p style={{ fontWeight: 600, marginBottom: 4 }}>{label}</p>
+      {payload.map((entry: any) => (
+        <div key={entry.dataKey} style={{ color: entry.color, marginBottom: 2 }}>
+          <span>{entry.name}: {formatNumber(entry.value)}</span>
+          <span style={{ color: colors.mutedFg, marginLeft: 8 }}>Eng: {engRates[entry.dataKey]}%</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function DefaultChart() {
   const { instagram, facebook, tiktok, period } = mockData;
   const colors = useChartColors();
@@ -301,11 +324,17 @@ function DefaultChart() {
           <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
           <XAxis dataKey="month" tick={{ fontSize: 12, fill: colors.mutedFg }} />
           <YAxis tick={{ fontSize: 12, fill: colors.mutedFg }} tickFormatter={(v) => formatNumber(v)} />
-          <Tooltip formatter={(value: number) => formatNumber(value)} contentStyle={{ borderRadius: "8px", border: `1px solid ${colors.border}`, fontSize: "12px" }} />
+          <Tooltip content={<DefaultChartTooltip />} />
           <Legend wrapperStyle={{ fontSize: "12px" }} />
-          <Bar dataKey="instagram" name="Instagram" fill={colors.chart1} radius={[6, 6, 0, 0]} />
-          <Bar dataKey="facebook" name="Facebook" fill={colors.chart2} radius={[6, 6, 0, 0]} />
-          <Bar dataKey="tiktok" name="TikTok" fill={colors.chart5} radius={[6, 6, 0, 0]} />
+          <Bar dataKey="instagram" name="Instagram" fill={colors.chart1} radius={[6, 6, 0, 0]}>
+            <LabelList dataKey="instagram" position="top" formatter={(v: number) => formatNumber(v)} style={{ fontSize: 10, fill: colors.mutedFg }} />
+          </Bar>
+          <Bar dataKey="facebook" name="Facebook" fill={colors.chart2} radius={[6, 6, 0, 0]}>
+            <LabelList dataKey="facebook" position="top" formatter={(v: number) => formatNumber(v)} style={{ fontSize: 10, fill: colors.mutedFg }} />
+          </Bar>
+          <Bar dataKey="tiktok" name="TikTok" fill={colors.chart5} radius={[6, 6, 0, 0]}>
+            <LabelList dataKey="tiktok" position="top" formatter={(v: number) => formatNumber(v)} style={{ fontSize: 10, fill: colors.mutedFg }} />
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -348,10 +377,12 @@ function DynamicChart({ chartData }: { chartData: ChartData }) {
             <CartesianGrid strokeDasharray="3 3" stroke={themeColors.border} />
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
             <YAxis tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
-            <Tooltip contentStyle={{ borderRadius: "8px", border: `1px solid ${themeColors.border}`, fontSize: "12px" }} />
+            <Tooltip contentStyle={{ borderRadius: "8px", border: `1px solid ${themeColors.border}`, fontSize: "12px" }} formatter={(value: number) => formatNumber(value)} />
             <Legend wrapperStyle={{ fontSize: "12px" }} />
             {dataKeys.map((key, i) => (
-              <Bar key={key} dataKey={key} fill={chartColors[i] || defaultColors[i] || themeColors.primary} radius={[6, 6, 0, 0]} />
+              <Bar key={key} dataKey={key} fill={chartColors[i] || defaultColors[i] || themeColors.primary} radius={[6, 6, 0, 0]}>
+                <LabelList dataKey={key} position="top" formatter={(v: number) => formatNumber(v)} style={{ fontSize: 10, fill: themeColors.mutedFg }} />
+              </Bar>
             ))}
           </BarChart>
         )}
