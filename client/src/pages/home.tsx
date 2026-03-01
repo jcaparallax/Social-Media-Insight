@@ -318,7 +318,7 @@ function DefaultChart() {
 
   return (
     <div className="bg-card rounded-xl p-5 border border-card-border shadow-sm">
-      <h3 className="text-sm font-semibold text-foreground mb-4">Crecimiento de Followers - Últimos 3 Meses</h3>
+      <h3 className="text-sm mb-4 font-bold text-[#392e22]">Crecimiento de Followers - Últimos 3 Meses</h3>
       <ResponsiveContainer width="100%" height={280}>
         <BarChart data={followerGrowth}>
           <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
