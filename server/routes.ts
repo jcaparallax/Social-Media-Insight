@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import Anthropic from "@anthropic-ai/sdk";
 import { mockData } from "./mock-data";
 import { chatRequestSchema } from "@shared/schema";
+import { fetchSheetsData } from "./sheets";
 
 const anthropic = new Anthropic({
   apiKey: process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY,
@@ -54,6 +55,16 @@ ${dataContext}`;
 
   app.get("/api/data", (_req, res) => {
     res.json(mockData);
+  });
+
+  app.get("/api/sheets-data", async (_req, res) => {
+    try {
+      const data = await fetchSheetsData();
+      res.json(data);
+    } catch (error) {
+      console.error("Sheets API error:", error);
+      res.status(500).json({ error: "Failed to fetch Google Sheets data" });
+    }
   });
 
   return httpServer;

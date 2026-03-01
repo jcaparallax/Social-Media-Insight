@@ -21,7 +21,7 @@ import {
   AGENCY_LOGO,
   CLIENT_LOGO,
 } from "@/data/config";
-import { mockData, mockDataContext } from "@/data/mock-santa-fe";
+import { mockData as fallbackMockData, mockDataContext as fallbackMockDataContext } from "@/data/mock-santa-fe";
 import { apiRequest } from "@/lib/queryClient";
 
 marked.setOptions({
@@ -208,8 +208,8 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function KpiCards() {
-  const { instagram, facebook, tiktok, meta_ads, period } = mockData;
+function KpiCards({ data }: { data: typeof fallbackMockData }) {
+  const { instagram, facebook, tiktok, meta_ads, period } = data;
   const igGrowth = instagram.followers - instagram.followers_prev_month;
   const fbGrowth = facebook.followers - facebook.followers_prev_month;
   const ttGrowth = tiktok.followers - tiktok.followers_prev_month;
@@ -285,8 +285,9 @@ function KpiCards() {
   );
 }
 
-function DefaultChartTooltip({ active, payload, label }: any) {
-  const { instagram, facebook, tiktok } = mockData;
+function DefaultChartTooltip({ active, payload, label, data }: any) {
+  const chartData = data || fallbackMockData;
+  const { instagram, facebook, tiktok } = chartData;
   const colors = useChartColors();
   if (!active || !payload?.length) return null;
   const engRates: Record<string, number> = {
@@ -307,8 +308,8 @@ function DefaultChartTooltip({ active, payload, label }: any) {
   );
 }
 
-function DefaultChart() {
-  const { instagram, facebook, tiktok, period } = mockData;
+function DefaultChart({ data }: { data: typeof fallbackMockData }) {
+  const { instagram, facebook, tiktok, period } = data;
   const colors = useChartColors();
   const followerGrowth = [
     { month: getTwoMonthsAgoLabel(period), instagram: instagram.followers_2months_ago, facebook: facebook.followers_2months_ago, tiktok: tiktok.followers_2months_ago },
@@ -324,7 +325,7 @@ function DefaultChart() {
           <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
           <XAxis dataKey="month" tick={{ fontSize: 12, fill: colors.mutedFg }} />
           <YAxis tick={{ fontSize: 12, fill: colors.mutedFg }} tickFormatter={(v) => formatNumber(v)} />
-          <Tooltip content={<DefaultChartTooltip />} cursor={false} />
+          <Tooltip content={<DefaultChartTooltip data={data} />} cursor={false} />
           <Legend wrapperStyle={{ fontSize: "12px" }} />
           <Bar dataKey="instagram" name="Instagram" fill={colors.chart1} radius={[6, 6, 0, 0]}>
             <LabelList dataKey="instagram" position="top" formatter={(v: number) => formatNumber(v)} style={{ fontSize: 10, fill: colors.mutedFg }} />
@@ -391,6 +392,51 @@ function DynamicChart({ chartData }: { chartData: ChartData }) {
   );
 }
 
+function ymToMonthLabel(ym: string): string {
+  const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const [y, m] = ym.split("-");
+  return `${MONTH_NAMES[parseInt(m, 10) - 1]} ${y}`;
+}
+
+function transformSheetsData(api: any): typeof fallbackMockData {
+  const currentLabel = ymToMonthLabel(api.period.current);
+  return {
+    plaza: api.plaza,
+    period: currentLabel,
+    instagram: {
+      followers: api.instagram.new_followers,
+      followers_prev_month: api.instagram.new_followers_prev,
+      followers_2months_ago: 0,
+      posts: 0,
+      reach: api.instagram.reach,
+      engagement_rate: api.instagram.reach > 0 ? +((api.instagram.engagement / api.instagram.reach) * 100).toFixed(1) : 0,
+      engagement_rate_prev_month: 0,
+    },
+    facebook: {
+      followers: api.facebook.followers_total,
+      followers_prev_month: api.facebook.followers_prev,
+      followers_2months_ago: api.facebook.followers_2m,
+      posts: 0,
+      reach: api.facebook.reach,
+      engagement_rate: api.facebook.reach > 0 ? +((api.facebook.engagement / api.facebook.reach) * 100).toFixed(1) : 0,
+      engagement_rate_prev_month: 0,
+    },
+    tiktok: {
+      followers: 0, followers_prev_month: 0, followers_2months_ago: 0,
+      posts: 0, views: 0, engagement_rate: 0, engagement_rate_prev_month: 0,
+    },
+    meta_ads: {
+      spend: api.meta_ads.spend,
+      currency: "MXN",
+      impressions: api.meta_ads.impressions,
+      clicks: api.meta_ads.clicks,
+      ctr: +api.meta_ads.ctr.toFixed(2),
+      cpr: api.meta_ads.clicks > 0 ? +(api.meta_ads.spend / api.meta_ads.clicks).toFixed(2) : 0,
+      results: api.meta_ads.clicks,
+    },
+  };
+}
+
 export default function Home() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -399,8 +445,26 @@ export default function Home() {
   const [canvasOpen, setCanvasOpen] = useState(true);
   const [questionChips, setQuestionChips] = useState<string[]>([]);
   const [chipsLoading, setChipsLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState(fallbackMockData);
+  const [dataContext, setDataContext] = useState(fallbackMockDataContext);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    async function fetchSheetsData() {
+      try {
+        const res = await fetch("/api/sheets-data");
+        if (res.ok) {
+          const apiData = await res.json();
+          const transformed = transformSheetsData(apiData);
+          setDashboardData(transformed);
+          setDataContext(JSON.stringify(apiData, null, 2));
+        }
+      } catch {
+      }
+    }
+    fetchSheetsData();
+  }, []);
 
   useEffect(() => {
     async function fetchChips() {
@@ -413,7 +477,7 @@ export default function Home() {
                 "Based on this social media data, generate 6 relevant opening questions a marketing manager would want to ask. Return ONLY a JSON array of 6 questions in Spanish, nothing else. Example: [\"question 1\", \"question 2\", ...]",
             },
           ],
-          context: mockDataContext,
+          context: dataContext,
         });
         const data = await res.json();
         const stripped = data.response.replace(/\n?SUGGESTED:\s*\[[\s\S]*?\]\s*$/, "").trim();
@@ -429,7 +493,7 @@ export default function Home() {
       }
     }
     fetchChips();
-  }, []);
+  }, [dataContext]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -454,7 +518,7 @@ export default function Home() {
     try {
       const res = await apiRequest("POST", "/api/chat", {
         messages: newMessages,
-        context: mockDataContext,
+        context: dataContext,
       });
       const data = await res.json();
       const { cleanText: afterSuggested, suggestions } = parseSuggested(data.response);
@@ -632,8 +696,8 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-sm font-medium text-foreground">{mockData.plaza}</span>
-                  <span className="text-xs text-muted-foreground">{(() => { const [m, y] = mockData.period.trim().split(/\s+/); return `${SPANISH_MONTHS_FULL[m.toLowerCase()] ?? m} ${y ?? ""}`.trim(); })()}</span>
+                  <span className="text-sm font-medium text-foreground">{dashboardData.plaza}</span>
+                  <span className="text-xs text-muted-foreground">{(() => { const [m, y] = dashboardData.period.trim().split(/\s+/); return `${SPANISH_MONTHS_FULL[m.toLowerCase()] ?? m} ${y ?? ""}`.trim(); })()}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -655,8 +719,8 @@ export default function Home() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-5">
-              <KpiCards />
-              {activeChart ? <DynamicChart chartData={activeChart} /> : <DefaultChart />}
+              <KpiCards data={dashboardData} />
+              {activeChart ? <DynamicChart chartData={activeChart} /> : <DefaultChart data={dashboardData} />}
             </div>
           </div>
         )}
