@@ -342,8 +342,8 @@ export default function Home() {
         context: mockDataContext,
       });
       const data = await res.json();
-      const { cleanText: afterChart, chartData } = parseChartData(data.response);
-      const { cleanText, suggestions } = parseSuggested(afterChart);
+      const { cleanText: afterSuggested, suggestions } = parseSuggested(data.response);
+      const { cleanText, chartData } = parseChartData(afterSuggested);
 
       if (chartData) {
         setActiveChart(chartData);
