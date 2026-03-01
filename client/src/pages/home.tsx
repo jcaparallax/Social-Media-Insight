@@ -229,7 +229,6 @@ function KpiCards() {
         <p className={`text-xs font-medium ${igGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>{igGrowth >= 0 ? "+" : ""}{formatNumber(igGrowth)}</p>
         <p className="text-[10px] text-muted-foreground" data-testid="subtitle-ig-growth">Crecimiento {curMonth} vs {prevMonth}</p>
       </div>
-
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
         <div className="flex items-center gap-2 mb-2">
           <SiFacebook className="text-chart-2" size={16} />
@@ -240,7 +239,6 @@ function KpiCards() {
         <p className={`text-xs font-medium ${fbGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>{fbGrowth >= 0 ? "+" : ""}{formatNumber(fbGrowth)}</p>
         <p className="text-[10px] text-muted-foreground" data-testid="subtitle-fb-growth">Crecimiento {curMonth} vs {prevMonth}</p>
       </div>
-
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
         <div className="flex items-center gap-2 mb-2">
           <SiTiktok size={16} className="text-chart-5" />
@@ -251,7 +249,6 @@ function KpiCards() {
         <p className={`text-xs font-medium ${ttGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>{ttGrowth >= 0 ? "+" : ""}{formatNumber(ttGrowth)}</p>
         <p className="text-[10px] text-muted-foreground" data-testid="subtitle-tt-growth">Crecimiento {curMonth} vs {prevMonth}</p>
       </div>
-
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
         <p className="text-xs font-medium mb-1 text-muted-foreground">Engagement Rate</p>
         <div className="flex items-baseline gap-1.5">
@@ -272,16 +269,14 @@ function KpiCards() {
         </div>
         <p className="text-[10px] text-muted-foreground" data-testid="subtitle-engagement">vs {prevMonth}</p>
       </div>
-
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
         <p className="text-xs font-medium mb-1 text-muted-foreground">Alcance Total</p>
         <p className="text-2xl font-bold text-foreground" data-testid="text-total-reach">{formatNumber(totalReach)}</p>
         <p className="text-xs text-muted-foreground">IG + FB + TikTok</p>
         <p className="text-[10px] text-muted-foreground" data-testid="subtitle-reach">Alcance orgánico {curMonth}</p>
       </div>
-
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
-        <p className="text-xs font-medium mb-1 text-muted-foreground">Pauta Meta</p>
+        <p className="text-xs font-medium mb-1 text-muted-foreground">Meta Ads</p>
         <p className="text-2xl font-bold text-foreground" data-testid="text-meta-spend">${formatNumber(meta_ads.spend)}</p>
         <p className="text-xs text-muted-foreground">CTR: {meta_ads.ctr}%</p>
         <p className="text-[10px] text-muted-foreground" data-testid="subtitle-meta-spend">Inversión Meta Ads {curMonth}</p>
