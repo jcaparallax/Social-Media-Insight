@@ -18,7 +18,6 @@ import {
 import {
   AGENCY_LOGO,
   CLIENT_LOGO,
-  ACCENT_COLOR,
   QUESTION_CHIPS,
 } from "@/data/config";
 import { mockData, mockDataContext } from "@/data/mock-santa-fe";
@@ -56,7 +55,7 @@ function parseChartData(text: string): { cleanText: string; chartData: ChartData
           title: parsed.title,
           data: parsed.data,
           dataKeys: parsed.dataKeys || (parsed.dataKey ? [parsed.dataKey] : ["value"]),
-          colors: parsed.colors || ["#ED7C22", "#004CFF", "#10B981"],
+          colors: parsed.colors || [],
         };
         if (chartData.type && chartData.data) {
           const cleanText = text.replace(regex, "").trim();
@@ -77,13 +76,34 @@ function formatNumber(n: number): string {
   return n.toLocaleString();
 }
 
+function useChartColors() {
+  const el = typeof document !== "undefined" ? document.documentElement : null;
+  function getCssColor(varName: string): string {
+    if (!el) return "#888";
+    const val = getComputedStyle(el).getPropertyValue(varName).trim();
+    return val ? `hsl(${val})` : "#888";
+  }
+  return {
+    chart1: getCssColor("--chart-1"),
+    chart2: getCssColor("--chart-2"),
+    chart3: getCssColor("--chart-3"),
+    chart4: getCssColor("--chart-4"),
+    chart5: getCssColor("--chart-5"),
+    primary: getCssColor("--primary"),
+    muted: getCssColor("--muted"),
+    mutedFg: getCssColor("--muted-foreground"),
+    border: getCssColor("--border"),
+    foreground: getCssColor("--foreground"),
+  };
+}
+
 function ThinkingAnimation() {
   return (
     <div className="flex items-start gap-3 mb-6">
       <div className="thinking-logo">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="#D97706" strokeWidth="2" className="thinking-circle" />
-          <circle cx="12" cy="12" r="4" fill="#D97706" className="thinking-dot" />
+          <circle cx="12" cy="12" r="10" stroke="hsl(var(--primary))" strokeWidth="2" className="thinking-circle" />
+          <circle cx="12" cy="12" r="4" fill="hsl(var(--primary))" className="thinking-dot" />
         </svg>
       </div>
       <div className="flex items-center gap-1.5 pt-1">
@@ -107,8 +127,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors"
-      style={{ color: "#8B7355" }}
+      className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors text-muted-foreground"
       data-testid="button-copy"
     >
       {copied ? (
@@ -135,53 +154,53 @@ function KpiCards() {
 
   return (
     <div className="grid grid-cols-2 xl:grid-cols-3 gap-3 mb-5">
-      <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+      <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
         <div className="flex items-center gap-2 mb-2">
-          <SiInstagram className="text-[#E1306C]" size={16} />
-          <span className="text-xs font-medium" style={{ color: "#6B5B4E" }}>Instagram</span>
+          <SiInstagram className="text-chart-1" size={16} />
+          <span className="text-xs font-medium text-muted-foreground">Instagram</span>
         </div>
-        <p className="text-2xl font-bold text-gray-900" data-testid="text-ig-followers">{formatNumber(instagram.followers)}</p>
-        <p className="text-xs font-medium" style={{ color: igGrowth >= 0 ? "#16A34A" : "#DC2626" }}>{igGrowth >= 0 ? "+" : ""}{formatNumber(igGrowth)}</p>
+        <p className="text-2xl font-bold text-foreground" data-testid="text-ig-followers">{formatNumber(instagram.followers)}</p>
+        <p className={`text-xs font-medium ${igGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>{igGrowth >= 0 ? "+" : ""}{formatNumber(igGrowth)}</p>
       </div>
 
-      <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+      <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
         <div className="flex items-center gap-2 mb-2">
-          <SiFacebook className="text-[#1877F2]" size={16} />
-          <span className="text-xs font-medium" style={{ color: "#6B5B4E" }}>Facebook</span>
+          <SiFacebook className="text-chart-2" size={16} />
+          <span className="text-xs font-medium text-muted-foreground">Facebook</span>
         </div>
-        <p className="text-2xl font-bold text-gray-900" data-testid="text-fb-followers">{formatNumber(facebook.followers)}</p>
-        <p className="text-xs font-medium" style={{ color: fbGrowth >= 0 ? "#16A34A" : "#DC2626" }}>{fbGrowth >= 0 ? "+" : ""}{formatNumber(fbGrowth)}</p>
+        <p className="text-2xl font-bold text-foreground" data-testid="text-fb-followers">{formatNumber(facebook.followers)}</p>
+        <p className={`text-xs font-medium ${fbGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>{fbGrowth >= 0 ? "+" : ""}{formatNumber(fbGrowth)}</p>
       </div>
 
-      <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+      <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
         <div className="flex items-center gap-2 mb-2">
-          <SiTiktok size={16} className="text-gray-900" />
-          <span className="text-xs font-medium" style={{ color: "#6B5B4E" }}>TikTok</span>
+          <SiTiktok size={16} className="text-chart-5" />
+          <span className="text-xs font-medium text-muted-foreground">TikTok</span>
         </div>
-        <p className="text-2xl font-bold text-gray-900" data-testid="text-tt-followers">{formatNumber(tiktok.followers)}</p>
-        <p className="text-xs font-medium" style={{ color: ttGrowth >= 0 ? "#16A34A" : "#DC2626" }}>{ttGrowth >= 0 ? "+" : ""}{formatNumber(ttGrowth)}</p>
+        <p className="text-2xl font-bold text-foreground" data-testid="text-tt-followers">{formatNumber(tiktok.followers)}</p>
+        <p className={`text-xs font-medium ${ttGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>{ttGrowth >= 0 ? "+" : ""}{formatNumber(ttGrowth)}</p>
       </div>
 
-      <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-        <p className="text-xs font-medium mb-1" style={{ color: "#6B5B4E" }}>Engagement Rate</p>
+      <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
+        <p className="text-xs font-medium mb-1 text-muted-foreground">Engagement Rate</p>
         <div className="flex items-baseline gap-1.5">
-          <span className="text-base font-bold" style={{ color: "#E1306C" }} data-testid="text-eng-ig">{instagram.engagement_rate}%</span>
-          <span className="text-base font-bold" style={{ color: "#1877F2" }} data-testid="text-eng-fb">{facebook.engagement_rate}%</span>
-          <span className="text-base font-bold text-gray-900" data-testid="text-eng-tt">{tiktok.engagement_rate}%</span>
+          <span className="text-base font-bold text-chart-1" data-testid="text-eng-ig">{instagram.engagement_rate}%</span>
+          <span className="text-base font-bold text-chart-2" data-testid="text-eng-fb">{facebook.engagement_rate}%</span>
+          <span className="text-base font-bold text-chart-5" data-testid="text-eng-tt">{tiktok.engagement_rate}%</span>
         </div>
-        <p className="text-xs" style={{ color: "#9B8B7A" }}>IG / FB / TT</p>
+        <p className="text-xs text-muted-foreground">IG / FB / TT</p>
       </div>
 
-      <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-        <p className="text-xs font-medium mb-1" style={{ color: "#6B5B4E" }}>Alcance Total</p>
-        <p className="text-2xl font-bold text-gray-900" data-testid="text-total-reach">{formatNumber(totalReach)}</p>
-        <p className="text-xs" style={{ color: "#9B8B7A" }}>IG + FB</p>
+      <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
+        <p className="text-xs font-medium mb-1 text-muted-foreground">Alcance Total</p>
+        <p className="text-2xl font-bold text-foreground" data-testid="text-total-reach">{formatNumber(totalReach)}</p>
+        <p className="text-xs text-muted-foreground">IG + FB</p>
       </div>
 
-      <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-        <p className="text-xs font-medium mb-1" style={{ color: "#6B5B4E" }}>Pauta Meta</p>
-        <p className="text-2xl font-bold text-gray-900" data-testid="text-meta-spend">${formatNumber(meta_ads.spend)}</p>
-        <p className="text-xs" style={{ color: "#9B8B7A" }}>CTR: {meta_ads.ctr}%</p>
+      <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
+        <p className="text-xs font-medium mb-1 text-muted-foreground">Pauta Meta</p>
+        <p className="text-2xl font-bold text-foreground" data-testid="text-meta-spend">${formatNumber(meta_ads.spend)}</p>
+        <p className="text-xs text-muted-foreground">CTR: {meta_ads.ctr}%</p>
       </div>
     </div>
   );
@@ -189,6 +208,7 @@ function KpiCards() {
 
 function DefaultChart() {
   const { instagram, facebook, tiktok } = mockData;
+  const colors = useChartColors();
   const followerGrowth = [
     { month: "Dic 2025", instagram: instagram.followers_2months_ago, facebook: facebook.followers_2months_ago, tiktok: tiktok.followers_2months_ago },
     { month: "Ene 2026", instagram: instagram.followers_prev_month, facebook: facebook.followers_prev_month, tiktok: tiktok.followers_prev_month },
@@ -196,18 +216,18 @@ function DefaultChart() {
   ];
 
   return (
-    <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
-      <h3 className="text-sm font-semibold text-gray-900 mb-4">Crecimiento de Followers - Ultimos 3 Meses</h3>
+    <div className="bg-card rounded-xl p-5 border border-card-border shadow-sm">
+      <h3 className="text-sm font-semibold text-foreground mb-4">Crecimiento de Followers - Ultimos 3 Meses</h3>
       <ResponsiveContainer width="100%" height={280}>
         <BarChart data={followerGrowth}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0ebe3" />
-          <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#6B5B4E" }} />
-          <YAxis tick={{ fontSize: 12, fill: "#6B5B4E" }} tickFormatter={(v) => formatNumber(v)} />
-          <Tooltip formatter={(value: number) => formatNumber(value)} contentStyle={{ borderRadius: "8px", border: "1px solid #e8e0d4", fontSize: "12px" }} />
+          <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
+          <XAxis dataKey="month" tick={{ fontSize: 12, fill: colors.mutedFg }} />
+          <YAxis tick={{ fontSize: 12, fill: colors.mutedFg }} tickFormatter={(v) => formatNumber(v)} />
+          <Tooltip formatter={(value: number) => formatNumber(value)} contentStyle={{ borderRadius: "8px", border: `1px solid ${colors.border}`, fontSize: "12px" }} />
           <Legend wrapperStyle={{ fontSize: "12px" }} />
-          <Bar dataKey="instagram" name="Instagram" fill="#E1306C" radius={[6, 6, 0, 0]} />
-          <Bar dataKey="facebook" name="Facebook" fill="#1877F2" radius={[6, 6, 0, 0]} />
-          <Bar dataKey="tiktok" name="TikTok" fill="#1a1a1a" radius={[6, 6, 0, 0]} />
+          <Bar dataKey="instagram" name="Instagram" fill={colors.chart1} radius={[6, 6, 0, 0]} />
+          <Bar dataKey="facebook" name="Facebook" fill={colors.chart2} radius={[6, 6, 0, 0]} />
+          <Bar dataKey="tiktok" name="TikTok" fill={colors.chart5} radius={[6, 6, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -215,43 +235,45 @@ function DefaultChart() {
 }
 
 function DynamicChart({ chartData }: { chartData: ChartData }) {
-  const { type, title, data, dataKeys, colors } = chartData;
+  const { type, title, data, dataKeys, colors: chartColors } = chartData;
+  const themeColors = useChartColors();
+  const defaultColors = [themeColors.chart3, themeColors.chart1, themeColors.chart2, themeColors.chart4, themeColors.chart5];
 
   return (
-    <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
-      <h3 className="text-sm font-semibold text-gray-900 mb-4">{title}</h3>
+    <div className="bg-card rounded-xl p-5 border border-card-border shadow-sm">
+      <h3 className="text-sm font-semibold text-foreground mb-4">{title}</h3>
       <ResponsiveContainer width="100%" height={280}>
         {type === "line" ? (
           <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0ebe3" />
-            <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#6B5B4E" }} />
-            <YAxis tick={{ fontSize: 12, fill: "#6B5B4E" }} />
-            <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid #e8e0d4", fontSize: "12px" }} />
+            <CartesianGrid strokeDasharray="3 3" stroke={themeColors.border} />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
+            <YAxis tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
+            <Tooltip contentStyle={{ borderRadius: "8px", border: `1px solid ${themeColors.border}`, fontSize: "12px" }} />
             <Legend wrapperStyle={{ fontSize: "12px" }} />
             {dataKeys.map((key, i) => (
-              <Line key={key} type="monotone" dataKey={key} stroke={colors[i] || ACCENT_COLOR} strokeWidth={2} dot={{ r: 4 }} />
+              <Line key={key} type="monotone" dataKey={key} stroke={chartColors[i] || defaultColors[i] || themeColors.primary} strokeWidth={2} dot={{ r: 4 }} />
             ))}
           </LineChart>
         ) : type === "area" ? (
           <AreaChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0ebe3" />
-            <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#6B5B4E" }} />
-            <YAxis tick={{ fontSize: 12, fill: "#6B5B4E" }} />
-            <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid #e8e0d4", fontSize: "12px" }} />
+            <CartesianGrid strokeDasharray="3 3" stroke={themeColors.border} />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
+            <YAxis tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
+            <Tooltip contentStyle={{ borderRadius: "8px", border: `1px solid ${themeColors.border}`, fontSize: "12px" }} />
             <Legend wrapperStyle={{ fontSize: "12px" }} />
             {dataKeys.map((key, i) => (
-              <Area key={key} type="monotone" dataKey={key} fill={colors[i] || ACCENT_COLOR} stroke={colors[i] || ACCENT_COLOR} fillOpacity={0.2} />
+              <Area key={key} type="monotone" dataKey={key} fill={chartColors[i] || defaultColors[i] || themeColors.primary} stroke={chartColors[i] || defaultColors[i] || themeColors.primary} fillOpacity={0.2} />
             ))}
           </AreaChart>
         ) : (
           <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0ebe3" />
-            <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#6B5B4E" }} />
-            <YAxis tick={{ fontSize: 12, fill: "#6B5B4E" }} />
-            <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid #e8e0d4", fontSize: "12px" }} />
+            <CartesianGrid strokeDasharray="3 3" stroke={themeColors.border} />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
+            <YAxis tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
+            <Tooltip contentStyle={{ borderRadius: "8px", border: `1px solid ${themeColors.border}`, fontSize: "12px" }} />
             <Legend wrapperStyle={{ fontSize: "12px" }} />
             {dataKeys.map((key, i) => (
-              <Bar key={key} dataKey={key} fill={colors[i] || ACCENT_COLOR} radius={[6, 6, 0, 0]} />
+              <Bar key={key} dataKey={key} fill={chartColors[i] || defaultColors[i] || themeColors.primary} radius={[6, 6, 0, 0]} />
             ))}
           </BarChart>
         )}
@@ -331,7 +353,7 @@ export default function Home() {
   }
 
   return (
-    <div className="h-screen flex flex-col" style={{ backgroundColor: "#FAF6F0" }}>
+    <div className="h-screen flex flex-col bg-background">
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         <div className={`flex flex-col h-full transition-all duration-300 ${canvasOpen ? "w-full md:w-[42%]" : "w-full"}`}>
           <div className="flex items-center justify-between px-[26px] pt-[25px] pb-[15px]">
@@ -352,15 +374,14 @@ export default function Home() {
           <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6" data-testid="chat-scroll-area">
             {messages.length === 0 && (
               <div className="max-w-xl mx-auto pt-8">
-                <h1 className="text-2xl font-semibold text-gray-900 mb-6">Hola, pregunta lo que necesites sobre tus redes sociales.</h1>
+                <h1 className="text-2xl font-semibold text-foreground mb-6">Hola, pregunta lo que necesites sobre tus redes sociales.</h1>
                 <div className="flex flex-wrap gap-2">
                   {QUESTION_CHIPS.map((q, i) => (
                     <button
                       key={i}
                       onClick={() => sendMessage(q)}
                       disabled={isLoading}
-                      className="chip-button text-sm px-4 py-2 rounded-full border transition-all disabled:opacity-50"
-                      style={{ borderColor: "#D4C9B8", color: "#5C4D3C", backgroundColor: "transparent" }}
+                      className="chip-button text-sm px-4 py-2 rounded-full border border-border text-foreground bg-transparent transition-all disabled:opacity-50"
                       data-testid={`button-chip-${i}`}
                     >
                       {q}
@@ -376,8 +397,7 @@ export default function Home() {
                   {msg.role === "user" ? (
                     <div className="flex justify-end">
                       <div
-                        className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed max-w-[85%]"
-                        style={{ backgroundColor: "#EEDDC8", color: "#3D3224" }}
+                        className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed max-w-[85%] bg-secondary text-foreground"
                         data-testid={`text-message-${i}`}
                       >
                         <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -386,8 +406,7 @@ export default function Home() {
                   ) : (
                     <div className="flex flex-col items-start">
                       <div
-                        className="text-sm leading-relaxed max-w-full"
-                        style={{ color: "#3D3224" }}
+                        className="text-sm leading-relaxed max-w-full text-foreground"
                         data-testid={`text-message-${i}`}
                       >
                         <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -409,8 +428,7 @@ export default function Home() {
           <div className="px-4 md:px-8 pb-4 pt-2 print:hidden">
             <form
               onSubmit={handleSubmit}
-              className="relative rounded-2xl border shadow-sm"
-              style={{ backgroundColor: "#FFFFFF", borderColor: "#D4C9B8" }}
+              className="relative rounded-2xl border border-border shadow-sm bg-card"
             >
               <textarea
                 ref={textareaRef}
@@ -420,54 +438,48 @@ export default function Home() {
                 placeholder="Responder..."
                 disabled={isLoading}
                 rows={1}
-                className="w-full resize-none bg-transparent px-4 pt-3.5 pb-12 text-sm focus:outline-none disabled:opacity-50"
-                style={{ color: "#3D3224", minHeight: "52px" }}
+                className="w-full resize-none bg-transparent px-4 pt-3.5 pb-12 text-sm text-foreground focus:outline-none disabled:opacity-50"
+                style={{ minHeight: "52px" }}
                 data-testid="input-chat"
               />
               <div className="absolute bottom-2.5 right-2.5">
                 <button
                   type="submit"
                   disabled={isLoading || !input.trim()}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-opacity disabled:opacity-30"
-                  style={{ backgroundColor: ACCENT_COLOR }}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-opacity disabled:opacity-30 bg-primary text-primary-foreground"
                   data-testid="button-send"
                 >
-                  <ArrowUp className="w-4 h-4 text-white" />
+                  <ArrowUp className="w-4 h-4" />
                 </button>
               </div>
             </form>
-            <p className="text-center text-xs mt-2" style={{ color: "#9B8B7A" }}>
+            <p className="text-center text-xs mt-2 text-muted-foreground">
               La IA puede cometer errores. Verifica los datos importantes.
             </p>
           </div>
         </div>
 
         {canvasOpen && (
-          <div
-            className="w-full md:w-[58%] flex flex-col border-l overflow-hidden print:w-1/2"
-            style={{ borderColor: "#E8E0D4", backgroundColor: "#F7F3ED" }}
-          >
-            <div className="flex items-center justify-between gap-2 px-5 py-3 border-b" style={{ borderColor: "#E8E0D4" }}>
+          <div className="w-full md:w-[58%] flex flex-col border-l border-border overflow-hidden print:w-1/2 bg-accent">
+            <div className="flex items-center justify-between gap-2 px-5 py-3 border-b border-border">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <RefreshCw className="w-3.5 h-3.5" style={{ color: "#8B7B6B" }} />
-                  <span className="text-sm font-medium text-gray-900">{mockData.plaza}</span>
-                  <span className="text-xs" style={{ color: "#8B7B6B" }}>{mockData.period}</span>
+                  <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">{mockData.plaza}</span>
+                  <span className="text-xs text-muted-foreground">{mockData.period}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleExportPdf}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border transition-colors"
-                  style={{ borderColor: "#D4C9B8", color: "#5C4D3C", backgroundColor: "transparent" }}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border border-border text-foreground bg-transparent transition-colors"
                   data-testid="button-export-pdf"
                 >
                   Exportar PDF
                 </button>
                 <button
                   onClick={() => setCanvasOpen(false)}
-                  className="w-7 h-7 rounded-md flex items-center justify-center transition-colors md:hidden"
-                  style={{ color: "#8B7B6B" }}
+                  className="w-7 h-7 rounded-md flex items-center justify-center transition-colors text-muted-foreground md:hidden"
                   data-testid="button-close-canvas"
                 >
                   <X className="w-4 h-4" />
