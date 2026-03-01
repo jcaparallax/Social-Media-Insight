@@ -626,7 +626,7 @@ export default function Home() {
         </div>
 
         {canvasOpen && (
-          <div className="w-full md:w-[58%] flex flex-col border-l border-border overflow-hidden print:w-1/2 bg-accent">
+          <div className="hidden md:flex print:flex w-full md:w-[58%] flex-col border-l border-border overflow-hidden print:w-1/2 bg-accent">
             <div className="flex items-center justify-between gap-2 px-5 py-3 border-b border-border">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
