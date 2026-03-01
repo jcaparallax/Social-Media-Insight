@@ -611,6 +611,7 @@ export default function Home() {
         const res = await fetch("/api/sheets-data");
         if (res.ok) {
           const data = await res.json();
+          console.log("[DEBUG] Patio Santa Fe — Full monthly aggregated data:", JSON.parse(JSON.stringify(data)));
           setApiData(data);
           setDataContext(JSON.stringify(data, null, 2));
         }
