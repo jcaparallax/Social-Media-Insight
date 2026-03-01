@@ -1,0 +1,63 @@
+Redesign the dashboard with the following changes. All data must come from real Coupler sheet data — no mock data. Use monthly aggregations from November 2025 through February 2026.
+
+--- KPI CARDS ---
+
+Replace current cards with these 5:
+
+1. **Alcance Total** (Facebook + Instagram combined reach for current month)
+   - Show delta vs previous month (%)
+   - Show delta vs 3 months ago (%)
+
+2. **Engagement Rate** (average across platforms for current month)
+   - Calculate as: total engagements / total reach * 100
+   - Show delta vs previous month
+
+3. **Interacciones Totales** (sum of likes + comments + saves + shares from Instagram + Facebook for current month)
+   - Show delta vs previous month (%)
+
+4. **Nuevos Seguidores Instagram** (new followers current month)
+   - Show delta vs previous month (%)
+
+5. **Gasto Meta Ads** (total spend current month)
+   - Show delta vs previous month (%)
+   - If $0, show "Sin pauta este mes" as subtitle
+
+--- SUMMARY TABLE ---
+
+Replace the initial table with a platform summary table:
+Columns: Plataforma | Alcance | Interacciones | Engagement Rate | Nuevos Seguidores | vs Mes Anterior
+Rows: Facebook, Instagram, TikTok (show "Sin datos" for TikTok)
+Use platform brand colors (#1877F2 Facebook, #E1306C Instagram, #69C9D0 TikTok) for the platform name cell.
+
+--- CHARTS (show all 4 by default) ---
+
+1. **Bar chart agrupado — Alcance por Plataforma**
+   - X axis: Nov, Dic, Ene, Feb
+   - Grouped bars: Facebook (#1877F2) and Instagram (#E1306C)
+   - Title: "Alcance Mensual por Plataforma"
+
+2. **Line chart — Engagement Rate Mensual**
+   - X axis: Nov, Dic, Ene, Feb
+   - Two lines: Facebook (#1877F2) and Instagram (#E1306C)
+   - Y axis: percentage (%)
+   - Title: "Evolución de Engagement Rate"
+
+3. **Pie chart — Distribución de Interacciones (Instagram)**
+   - Slices: Likes, Comentarios, Guardados, Compartidos
+   - Use current month data
+   - Show percentage on each slice
+   - Title: "Tipo de Interacciones — Instagram Feb 2026"
+
+4. **Bar chart — Nuevos Seguidores Instagram**
+   - X axis: Nov, Dic, Ene, Feb
+   - Single bar (#E1306C)
+   - Title: "Nuevos Seguidores Mensuales — Instagram"
+
+--- AI QUERIES ---
+
+Every AI query or question answered by the assistant must return:
+- A text response (2-3 sentences max)
+- At least one chart (bar, line, or pie) generated from the relevant data
+- The chart type should match the question (trend → line, comparison → bar, composition → pie)
+
+Do not change platform colors or any other existing style. Do not use mock data anywhere.
