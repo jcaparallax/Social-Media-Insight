@@ -253,8 +253,18 @@ function KpiCards() {
           <span className="text-base font-bold text-chart-2" data-testid="text-eng-fb">{facebook.engagement_rate}%</span>
           <span className="text-base font-bold text-chart-5" data-testid="text-eng-tt">{tiktok.engagement_rate}%</span>
         </div>
-        <p className="text-xs text-muted-foreground">IG / FB / TT</p>
-        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-engagement">Engagement rate {curMonth}</p>
+        <div className="flex items-baseline gap-1.5 mt-1">
+          {[
+            { delta: +(instagram.engagement_rate - instagram.engagement_rate_prev_month).toFixed(1), id: "delta-eng-ig" },
+            { delta: +(facebook.engagement_rate - facebook.engagement_rate_prev_month).toFixed(1), id: "delta-eng-fb" },
+            { delta: +(tiktok.engagement_rate - tiktok.engagement_rate_prev_month).toFixed(1), id: "delta-eng-tt" },
+          ].map(({ delta, id }) => (
+            <span key={id} className={`text-[10px] font-medium ${delta >= 0 ? "text-green-600" : "text-red-600"}`} data-testid={id}>
+              {delta >= 0 ? "+" : ""}{delta.toFixed(1)}%
+            </span>
+          ))}
+        </div>
+        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-engagement">vs {prevMonth}</p>
       </div>
 
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
