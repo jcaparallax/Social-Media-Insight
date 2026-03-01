@@ -46,22 +46,23 @@ A social media analytics chat app for marketing agency Parallax, serving client 
 - Default: all selected
 - Changing selection re-fetches data and updates dashboard
 
-### KPI Cards (5 cards)
+### KPI Cards (6 cards)
 1. **Alcance Total** — FB + IG combined reach, deltas vs previous month and 3 months ago
-2. **Engagement Rate** — total engagements / total reach * 100, delta vs previous month
-3. **Interacciones Totales** — sum of likes + comments + saves + shares (IG + FB), delta vs previous
-4. **Nuevos Seguidores Instagram** — new followers current month, delta vs previous
-5. **Gasto Meta Ads** — total spend, delta vs previous (shows "Sin pauta este mes" if $0)
+2. **Eng. Rate Facebook** — fb.engagement / fb.reach * 100, delta vs previous month (pp)
+3. **Eng. Rate Instagram** — (ig.likes + ig.comments + ig.saves + ig.shares) / ig.reach * 100, delta vs previous month (pp)
+4. **Interacciones Totales** — sum of likes + comments + saves + shares (IG + FB), delta vs previous
+5. **Nuevos Seguidores IG** — new followers current month; shows absolute diff when prev < 10, percentage when prev >= 10
+6. **Gasto Meta Ads** — total spend, delta vs previous (shows "Sin pauta este mes" if $0)
 
 ### Platform Summary Table
 - Columns: Plataforma, Alcance, Interacciones, Engagement Rate, Nuevos Seguidores, vs Mes Anterior
 - Rows: Facebook (#1877F2), Instagram (#E1306C), TikTok (#69C9D0 — shows "Sin datos")
 
 ### Charts (4 shown by default)
-1. Bar chart — Alcance Mensual por Plataforma (grouped FB + IG)
+1. Two stacked bar charts — Alcance Mensual por Plataforma (separate FB and IG charts with independent Y axes, 160px each)
 2. Line chart — Evolución de Engagement Rate (FB + IG lines)
-3. Pie chart — Tipo de Interacciones Instagram (Likes, Comentarios, Guardados, Compartidos)
-4. Bar chart — Nuevos Seguidores Mensuales Instagram
+3. Horizontal bar chart — Tipo de Interacciones Instagram (Likes, Comentarios, Guardados, Compartidos with absolute values)
+4. Bar chart — Nuevos Seguidores Mensuales Instagram (missing months shown as gray N/D bars)
 
 ### AI Chat
 - Every AI response must include a text answer (2-3 sentences) plus at least one CHART_DATA block

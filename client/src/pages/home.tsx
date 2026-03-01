@@ -399,10 +399,18 @@ function KpiCards({ data }: { data: AggregatedData }) {
   const curEngagements = cur.instagram.likes + cur.instagram.comments + cur.instagram.saves + cur.instagram.shares + cur.facebook.engagement;
   const prevEngagements = prv.instagram.likes + prv.instagram.comments + prv.instagram.saves + prv.instagram.shares + prv.facebook.engagement;
 
-  const curEngRate = curReach > 0 ? +(curEngagements / curReach * 100).toFixed(2) : 0;
-  const prevEngRate = prevReach > 0 ? +(prevEngagements / prevReach * 100).toFixed(2) : 0;
+  const curFbEngRate = cur.facebook.reach > 0 ? +(cur.facebook.engagement / cur.facebook.reach * 100).toFixed(2) : 0;
+  const prevFbEngRate = prv.facebook.reach > 0 ? +(prv.facebook.engagement / prv.facebook.reach * 100).toFixed(2) : 0;
+
+  const curIgEngTotal = cur.instagram.likes + cur.instagram.comments + cur.instagram.saves + cur.instagram.shares;
+  const prevIgEngTotal = prv.instagram.likes + prv.instagram.comments + prv.instagram.saves + prv.instagram.shares;
+  const curIgEngRate = cur.instagram.reach > 0 ? +(curIgEngTotal / cur.instagram.reach * 100).toFixed(2) : 0;
+  const prevIgEngRate = prv.instagram.reach > 0 ? +(prevIgEngTotal / prv.instagram.reach * 100).toFixed(2) : 0;
 
   const currentLabel = getMonthLabel(current);
+
+  const igFollowersDelta = cur.instagram.new_followers - prv.instagram.new_followers;
+  const showFollowersPct = prv.instagram.new_followers >= 10;
 
   return (
     <div className="grid grid-cols-2 xl:grid-cols-3 gap-3 mb-5">
@@ -421,11 +429,27 @@ function KpiCards({ data }: { data: AggregatedData }) {
       </div>
 
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
-        <p className="text-xs mb-1 font-bold text-[#392e22]">Engagement Rate</p>
-        <p className="text-2xl font-bold text-foreground" data-testid="text-engagement-rate">{curEngRate}%</p>
-        <p className="text-[10px] text-muted-foreground">Promedio FB + IG</p>
+        <div className="flex items-center gap-2 mb-1">
+          <SiFacebook className="text-[#1877F2]" size={14} />
+          <p className="text-xs font-bold text-[#392e22]">Eng. Rate Facebook</p>
+        </div>
+        <p className="text-2xl font-bold text-foreground" data-testid="text-engagement-rate-fb">{curFbEngRate}%</p>
+        <p className="text-[10px] text-muted-foreground">{currentLabel}</p>
         <div className="flex items-center gap-2 mt-1">
-          <DeltaBadge value={+(curEngRate - prevEngRate).toFixed(2)} suffix="pp" />
+          <DeltaBadge value={+(curFbEngRate - prevFbEngRate).toFixed(2)} suffix="pp" />
+          <span className="text-[10px] text-muted-foreground">vs mes anterior</span>
+        </div>
+      </div>
+
+      <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <SiInstagram className="text-[#E1306C]" size={14} />
+          <p className="text-xs font-bold text-[#392e22]">Eng. Rate Instagram</p>
+        </div>
+        <p className="text-2xl font-bold text-foreground" data-testid="text-engagement-rate-ig">{curIgEngRate}%</p>
+        <p className="text-[10px] text-muted-foreground">{currentLabel}</p>
+        <div className="flex items-center gap-2 mt-1">
+          <DeltaBadge value={+(curIgEngRate - prevIgEngRate).toFixed(2)} suffix="pp" />
           <span className="text-[10px] text-muted-foreground">vs mes anterior</span>
         </div>
       </div>
@@ -447,10 +471,16 @@ function KpiCards({ data }: { data: AggregatedData }) {
         </div>
         <p className="text-2xl font-bold text-foreground" data-testid="text-ig-new-followers">{formatNumber(cur.instagram.new_followers)}</p>
         <p className="text-[10px] text-muted-foreground">{currentLabel}</p>
-        <div className="flex items-center gap-2 mt-1">
-          <DeltaBadge value={pctDelta(cur.instagram.new_followers, prv.instagram.new_followers)} />
-          <span className="text-[10px] text-muted-foreground">vs mes anterior</span>
-        </div>
+        {showFollowersPct ? (
+          <div className="flex items-center gap-2 mt-1">
+            <DeltaBadge value={pctDelta(cur.instagram.new_followers, prv.instagram.new_followers)} />
+            <span className="text-[10px] text-muted-foreground">vs mes anterior</span>
+          </div>
+        ) : (
+          <p className="text-[10px] text-muted-foreground mt-1">
+            {igFollowersDelta >= 0 ? "+" : ""}{igFollowersDelta} vs mes anterior
+          </p>
+        )}
       </div>
 
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm col-span-2 xl:col-span-1">
@@ -562,9 +592,13 @@ function DefaultCharts({ data }: { data: AggregatedData }) {
   const current = months[months.length - 1];
   const cur = data.monthly[current];
 
-  const reachData = months.map((ym) => ({
+  const fbReachData = months.map((ym) => ({
     name: getMonthLabel(ym),
     Facebook: data.monthly[ym].facebook.reach,
+  }));
+
+  const igReachData = months.map((ym) => ({
+    name: getMonthLabel(ym),
     Instagram: data.monthly[ym].instagram.reach,
   }));
 
@@ -576,18 +610,33 @@ function DefaultCharts({ data }: { data: AggregatedData }) {
     return { name: getMonthLabel(ym), Facebook: fbRate, Instagram: igRate };
   });
 
-  const pieData = [
+  const interactionColors: Record<string, string> = {
+    Likes: "#E1306C",
+    Comentarios: "#F77737",
+    Guardados: "#FCAF45",
+    Compartidos: "#833AB4",
+  };
+
+  const interactionData = [
     { name: "Likes", value: cur.instagram.likes },
     { name: "Comentarios", value: cur.instagram.comments },
     { name: "Guardados", value: cur.instagram.saves },
     { name: "Compartidos", value: cur.instagram.shares },
   ];
-  const pieTotal = pieData.reduce((a, b) => a + b.value, 0);
 
-  const followersData = months.map((ym) => ({
-    name: getMonthLabel(ym),
-    Seguidores: data.monthly[ym].instagram.new_followers,
-  }));
+  const maxFollowers = Math.max(...months.map((ym) => data.monthly[ym].instagram.new_followers), 1);
+  const missingBarValue = Math.max(Math.round(maxFollowers * 0.05), 1);
+
+  const followersData = months.map((ym) => {
+    const m = data.monthly[ym];
+    const hasIgData = m.instagram.reach > 0 || m.instagram.likes > 0 || m.instagram.comments > 0 || m.instagram.saves > 0 || m.instagram.shares > 0;
+    const isMissing = m.instagram.new_followers === 0 && !hasIgData;
+    return {
+      name: getMonthLabel(ym),
+      Seguidores: isMissing ? missingBarValue : m.instagram.new_followers,
+      isMissing,
+    };
+  });
 
   const currentYear = getMonthYear(current);
 
@@ -595,14 +644,23 @@ function DefaultCharts({ data }: { data: AggregatedData }) {
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
       <div className="bg-card rounded-xl p-5 border border-card-border shadow-sm">
         <h3 className="text-sm mb-4 font-bold text-[#392e22]" data-testid="text-reach-chart-title">Alcance Mensual por Plataforma</h3>
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={reachData}>
+        <p className="text-xs font-semibold text-[#1877F2] mb-1">Alcance Facebook</p>
+        <ResponsiveContainer width="100%" height={160}>
+          <BarChart data={fbReachData}>
             <CartesianGrid strokeDasharray="3 3" stroke={themeColors.border} />
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
             <YAxis tick={{ fontSize: 12, fill: themeColors.mutedFg }} tickFormatter={(v) => formatNumber(v)} />
             <Tooltip contentStyle={{ background: "#fff", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} formatter={(v: number) => formatNumber(v)} cursor={false} />
-            <Legend wrapperStyle={{ fontSize: "12px" }} />
             <Bar dataKey="Facebook" fill="#1877F2" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+        <p className="text-xs font-semibold text-[#E1306C] mb-1 mt-4">Alcance Instagram</p>
+        <ResponsiveContainer width="100%" height={160}>
+          <BarChart data={igReachData}>
+            <CartesianGrid strokeDasharray="3 3" stroke={themeColors.border} />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
+            <YAxis tick={{ fontSize: 12, fill: themeColors.mutedFg }} tickFormatter={(v) => formatNumber(v)} />
+            <Tooltip contentStyle={{ background: "#fff", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} formatter={(v: number) => formatNumber(v)} cursor={false} />
             <Bar dataKey="Instagram" fill="#E1306C" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -626,23 +684,18 @@ function DefaultCharts({ data }: { data: AggregatedData }) {
       <div className="bg-card rounded-xl p-5 border border-card-border shadow-sm">
         <h3 className="text-sm mb-4 font-bold text-[#392e22]" data-testid="text-pie-chart-title">Tipo de Interacciones — Instagram {getMonthLabel(current)} {currentYear}</h3>
         <ResponsiveContainer width="100%" height={260}>
-          <PieChart>
-            <Pie
-              data={pieData}
-              cx="50%"
-              cy="50%"
-              outerRadius={90}
-              dataKey="value"
-              label={({ name, value }) => `${name} ${pieTotal > 0 ? ((value / pieTotal) * 100).toFixed(0) : 0}%`}
-              labelLine={false}
-            >
-              {pieData.map((_, idx) => (
-                <Cell key={idx} fill={PIE_COLORS[idx]} />
+          <BarChart data={interactionData} layout="vertical" margin={{ left: 20, right: 40 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={themeColors.border} />
+            <XAxis type="number" tick={{ fontSize: 12, fill: themeColors.mutedFg }} tickFormatter={(v) => formatNumber(v)} />
+            <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: themeColors.mutedFg }} width={90} />
+            <Tooltip contentStyle={{ background: "#fff", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} formatter={(v: number) => formatNumber(v)} cursor={false} />
+            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+              {interactionData.map((entry, idx) => (
+                <Cell key={idx} fill={interactionColors[entry.name]} />
               ))}
-            </Pie>
-            <Tooltip contentStyle={{ background: "#fff", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} formatter={(v: number) => formatNumber(v)} />
-            <Legend wrapperStyle={{ fontSize: "12px" }} />
-          </PieChart>
+              <LabelList dataKey="value" position="right" formatter={(v: number) => formatNumber(v)} style={{ fontSize: 11, fill: themeColors.mutedFg }} />
+            </Bar>
+          </BarChart>
         </ResponsiveContainer>
       </div>
 
@@ -654,8 +707,26 @@ function DefaultCharts({ data }: { data: AggregatedData }) {
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
             <YAxis tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
             <Tooltip contentStyle={{ background: "#fff", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} cursor={false} />
-            <Bar dataKey="Seguidores" fill="#E1306C" radius={[4, 4, 0, 0]}>
-              <LabelList dataKey="Seguidores" position="top" formatter={(v: number) => formatNumber(v)} style={{ fontSize: 10, fill: themeColors.mutedFg }} />
+            <Bar dataKey="Seguidores" radius={[4, 4, 0, 0]}>
+              {followersData.map((entry, idx) => (
+                <Cell key={idx} fill={entry.isMissing ? "#9CA3AF" : "#E1306C"} fillOpacity={entry.isMissing ? 0.3 : 1} />
+              ))}
+              <LabelList
+                dataKey="Seguidores"
+                position="top"
+                style={{ fontSize: 10, fill: themeColors.mutedFg }}
+                content={({ x, y, width, index }: { x?: number; y?: number; width?: number; index?: number }) => {
+                  if (x == null || y == null || width == null || index == null) return null;
+                  const entry = followersData[index];
+                  if (!entry) return null;
+                  const label = entry.isMissing ? "N/D" : formatNumber(entry.Seguidores);
+                  return (
+                    <text x={x + width / 2} y={y - 6} textAnchor="middle" fontSize={10} fill={themeColors.mutedFg}>
+                      {label}
+                    </text>
+                  );
+                }}
+              />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
