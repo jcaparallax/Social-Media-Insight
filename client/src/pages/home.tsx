@@ -250,7 +250,7 @@ function KpiCards() {
         <p className="text-[10px] text-muted-foreground" data-testid="subtitle-tt-growth">Crecimiento {curMonth} vs {prevMonth}</p>
       </div>
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
-        <p className="text-xs font-medium mb-1 text-muted-foreground">Engagement Rate</p>
+        <p className="mb-1 text-[#392e22] text-[12px] font-bold">Engagement Rate</p>
         <div className="flex items-baseline gap-1.5">
           <span className="text-base font-bold text-chart-1" data-testid="text-eng-ig">{instagram.engagement_rate}%</span>
           <span className="text-base font-bold text-chart-2" data-testid="text-eng-fb">{facebook.engagement_rate}%</span>
