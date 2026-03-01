@@ -36,7 +36,7 @@ A social media analytics chat app for marketing agency Parallax, serving client 
 - 6 AI-generated question chips (Spanish, dynamically fetched from Claude on load)
 - Chat with Claude AI using real Google Sheets data as context (mock data fallback)
 - KPI summary cards (followers, growth, engagement, reach)
-- Bar chart for 3-month follower growth
+- Bar chart for engagement rate comparison by platform (Facebook, Instagram, TikTok if available)
 - Dynamic chart rendering from Claude CHART_DATA responses
 - PDF export via window.print()
 

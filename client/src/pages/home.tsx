@@ -16,6 +16,7 @@ import {
   AreaChart,
   Area,
   LabelList,
+  Cell,
 } from "recharts";
 import {
   AGENCY_LOGO,
@@ -311,30 +312,31 @@ function DefaultChartTooltip({ active, payload, label, data }: any) {
 function DefaultChart({ data }: { data: typeof fallbackMockData }) {
   const { instagram, facebook, tiktok, period } = data;
   const colors = useChartColors();
-  const followerGrowth = [
-    { month: getTwoMonthsAgoLabel(period), instagram: instagram.followers_2months_ago, facebook: facebook.followers_2months_ago, tiktok: tiktok.followers_2months_ago },
-    { month: getPrevMonthLabel(period), instagram: instagram.followers_prev_month, facebook: facebook.followers_prev_month, tiktok: tiktok.followers_prev_month },
-    { month: getMonthLabel(period), instagram: instagram.followers, facebook: facebook.followers, tiktok: tiktok.followers },
+  const curMonth = getMonthLabel(period);
+  const hasTiktok = tiktok.engagement_rate > 0;
+
+  const engagementData: { platform: string; rate: number; fill: string }[] = [
+    { platform: "Facebook", rate: facebook.engagement_rate, fill: colors.chart2 },
+    { platform: "Instagram", rate: instagram.engagement_rate, fill: colors.chart1 },
   ];
+  if (hasTiktok) {
+    engagementData.push({ platform: "TikTok", rate: tiktok.engagement_rate, fill: colors.chart5 });
+  }
 
   return (
     <div className="bg-card rounded-xl p-5 border border-card-border shadow-sm">
-      <h3 className="text-sm mb-4 font-bold text-[#392e22]">Crecimiento de Followers - Últimos 3 Meses</h3>
+      <h3 className="text-sm mb-4 font-bold text-[#392e22]" data-testid="text-engagement-chart-title">Engagement Rate por Plataforma — {curMonth}</h3>
       <ResponsiveContainer width="100%" height={280}>
-        <BarChart data={followerGrowth}>
+        <BarChart data={engagementData}>
           <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-          <XAxis dataKey="month" tick={{ fontSize: 12, fill: colors.mutedFg }} />
-          <YAxis tick={{ fontSize: 12, fill: colors.mutedFg }} tickFormatter={(v) => formatNumber(v)} />
-          <Tooltip content={<DefaultChartTooltip data={data} />} cursor={false} />
-          <Legend wrapperStyle={{ fontSize: "12px" }} />
-          <Bar dataKey="instagram" name="Instagram" fill={colors.chart1} radius={[6, 6, 0, 0]}>
-            <LabelList dataKey="instagram" position="top" formatter={(v: number) => formatNumber(v)} style={{ fontSize: 10, fill: colors.mutedFg }} />
-          </Bar>
-          <Bar dataKey="facebook" name="Facebook" fill={colors.chart2} radius={[6, 6, 0, 0]}>
-            <LabelList dataKey="facebook" position="top" formatter={(v: number) => formatNumber(v)} style={{ fontSize: 10, fill: colors.mutedFg }} />
-          </Bar>
-          <Bar dataKey="tiktok" name="TikTok" fill={colors.chart5} radius={[6, 6, 0, 0]}>
-            <LabelList dataKey="tiktok" position="top" formatter={(v: number) => formatNumber(v)} style={{ fontSize: 10, fill: colors.mutedFg }} />
+          <XAxis dataKey="platform" tick={{ fontSize: 12, fill: colors.mutedFg }} />
+          <YAxis tick={{ fontSize: 12, fill: colors.mutedFg }} tickFormatter={(v) => `${v}%`} />
+          <Tooltip contentStyle={{ background: "#ffffff", color: "#000000", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} cursor={false} formatter={(v: number) => `${v}%`} />
+          <Bar dataKey="rate" name="Engagement Rate" radius={[6, 6, 0, 0]}>
+            {engagementData.map((entry, index) => (
+              <Cell key={index} fill={entry.fill} />
+            ))}
+            <LabelList dataKey="rate" position="top" formatter={(v: number) => `${v}%`} style={{ fontSize: 10, fill: colors.mutedFg }} />
           </Bar>
         </BarChart>
       </ResponsiveContainer>
