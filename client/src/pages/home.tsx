@@ -245,7 +245,7 @@ function KpiCards() {
           <span className="text-xs font-medium text-muted-foreground">TikTok</span>
         </div>
         <p className="text-2xl font-bold text-foreground" data-testid="text-tt-followers">{formatNumber(tiktok.followers)}</p>
-        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-tt-followers">Seguidores totales</p>
+        <p className="text-[10px] font-bold text-[#392e22]" data-testid="subtitle-tt-followers">Seguidores totales</p>
         <p className={`text-xs font-medium ${ttGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>{ttGrowth >= 0 ? "+" : ""}{formatNumber(ttGrowth)}</p>
         <p className="text-[10px] text-muted-foreground" data-testid="subtitle-tt-growth">Crecimiento {curMonth} vs {prevMonth}</p>
       </div>
