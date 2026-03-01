@@ -29,6 +29,38 @@ marked.setOptions({
   gfm: true,
 });
 
+const SPANISH_MONTHS: Record<string, string> = {
+  january: "Ene", february: "Feb", march: "Mar", april: "Abr",
+  may: "May", june: "Jun", july: "Jul", august: "Ago",
+  september: "Sep", october: "Oct", november: "Nov", december: "Dic",
+};
+
+function getMonthLabel(date: string): string {
+  const [monthName, year] = date.trim().split(/\s+/);
+  const abbr = SPANISH_MONTHS[monthName.toLowerCase()] ?? monthName.slice(0, 3);
+  return `${abbr} ${year ?? ""}`.trim();
+}
+
+function getPrevMonthLabel(date: string): string {
+  const [monthName, yearStr] = date.trim().split(/\s+/);
+  const months = Object.keys(SPANISH_MONTHS);
+  const idx = months.indexOf(monthName.toLowerCase());
+  const prevIdx = idx <= 0 ? 11 : idx - 1;
+  const prevYear = idx === 0 ? String(Number(yearStr) - 1) : yearStr;
+  const prevAbbr = SPANISH_MONTHS[months[prevIdx]];
+  return `${prevAbbr} ${prevYear ?? ""}`.trim();
+}
+
+function getTwoMonthsAgoLabel(date: string): string {
+  const [monthName, yearStr] = date.trim().split(/\s+/);
+  const months = Object.keys(SPANISH_MONTHS);
+  const idx = months.indexOf(monthName.toLowerCase());
+  const twoAgoIdx = idx <= 1 ? 12 + idx - 2 : idx - 2;
+  const twoAgoYear = idx < 2 ? String(Number(yearStr) - 1) : yearStr;
+  const twoAgoAbbr = SPANISH_MONTHS[months[twoAgoIdx]];
+  return `${twoAgoAbbr} ${twoAgoYear ?? ""}`.trim();
+}
+
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
@@ -171,11 +203,13 @@ function CopyButton({ text }: { text: string }) {
 }
 
 function KpiCards() {
-  const { instagram, facebook, tiktok, meta_ads } = mockData;
+  const { instagram, facebook, tiktok, meta_ads, period } = mockData;
   const igGrowth = instagram.followers - instagram.followers_prev_month;
   const fbGrowth = facebook.followers - facebook.followers_prev_month;
   const ttGrowth = tiktok.followers - tiktok.followers_prev_month;
   const totalReach = instagram.reach + facebook.reach;
+  const curMonth = getMonthLabel(period);
+  const prevMonth = getPrevMonthLabel(period);
 
   return (
     <div className="grid grid-cols-2 xl:grid-cols-3 gap-3 mb-5">
@@ -185,7 +219,9 @@ function KpiCards() {
           <span className="text-xs font-medium text-muted-foreground">Instagram</span>
         </div>
         <p className="text-2xl font-bold text-foreground" data-testid="text-ig-followers">{formatNumber(instagram.followers)}</p>
+        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-ig-followers">Seguidores totales</p>
         <p className={`text-xs font-medium ${igGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>{igGrowth >= 0 ? "+" : ""}{formatNumber(igGrowth)}</p>
+        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-ig-growth">Crecimiento {curMonth} vs {prevMonth}</p>
       </div>
 
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
@@ -194,7 +230,9 @@ function KpiCards() {
           <span className="text-xs font-medium text-muted-foreground">Facebook</span>
         </div>
         <p className="text-2xl font-bold text-foreground" data-testid="text-fb-followers">{formatNumber(facebook.followers)}</p>
+        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-fb-followers">Seguidores totales</p>
         <p className={`text-xs font-medium ${fbGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>{fbGrowth >= 0 ? "+" : ""}{formatNumber(fbGrowth)}</p>
+        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-fb-growth">Crecimiento {curMonth} vs {prevMonth}</p>
       </div>
 
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
@@ -203,7 +241,9 @@ function KpiCards() {
           <span className="text-xs font-medium text-muted-foreground">TikTok</span>
         </div>
         <p className="text-2xl font-bold text-foreground" data-testid="text-tt-followers">{formatNumber(tiktok.followers)}</p>
+        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-tt-followers">Seguidores totales</p>
         <p className={`text-xs font-medium ${ttGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>{ttGrowth >= 0 ? "+" : ""}{formatNumber(ttGrowth)}</p>
+        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-tt-growth">Crecimiento {curMonth} vs {prevMonth}</p>
       </div>
 
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
@@ -214,30 +254,33 @@ function KpiCards() {
           <span className="text-base font-bold text-chart-5" data-testid="text-eng-tt">{tiktok.engagement_rate}%</span>
         </div>
         <p className="text-xs text-muted-foreground">IG / FB / TT</p>
+        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-engagement">Engagement rate {curMonth}</p>
       </div>
 
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
         <p className="text-xs font-medium mb-1 text-muted-foreground">Alcance Total</p>
         <p className="text-2xl font-bold text-foreground" data-testid="text-total-reach">{formatNumber(totalReach)}</p>
         <p className="text-xs text-muted-foreground">IG + FB</p>
+        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-reach">Alcance orgánico {curMonth}</p>
       </div>
 
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
         <p className="text-xs font-medium mb-1 text-muted-foreground">Pauta Meta</p>
         <p className="text-2xl font-bold text-foreground" data-testid="text-meta-spend">${formatNumber(meta_ads.spend)}</p>
         <p className="text-xs text-muted-foreground">CTR: {meta_ads.ctr}%</p>
+        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-meta-spend">Inversión Meta Ads {curMonth}</p>
       </div>
     </div>
   );
 }
 
 function DefaultChart() {
-  const { instagram, facebook, tiktok } = mockData;
+  const { instagram, facebook, tiktok, period } = mockData;
   const colors = useChartColors();
   const followerGrowth = [
-    { month: "Dic 2025", instagram: instagram.followers_2months_ago, facebook: facebook.followers_2months_ago, tiktok: tiktok.followers_2months_ago },
-    { month: "Ene 2026", instagram: instagram.followers_prev_month, facebook: facebook.followers_prev_month, tiktok: tiktok.followers_prev_month },
-    { month: "Feb 2026", instagram: instagram.followers, facebook: facebook.followers, tiktok: tiktok.followers },
+    { month: getTwoMonthsAgoLabel(period), instagram: instagram.followers_2months_ago, facebook: facebook.followers_2months_ago, tiktok: tiktok.followers_2months_ago },
+    { month: getPrevMonthLabel(period), instagram: instagram.followers_prev_month, facebook: facebook.followers_prev_month, tiktok: tiktok.followers_prev_month },
+    { month: getMonthLabel(period), instagram: instagram.followers, facebook: facebook.followers, tiktok: tiktok.followers },
   ];
 
   return (
