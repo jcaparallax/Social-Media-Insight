@@ -39,6 +39,7 @@ interface ChartData {
 
 function parseChartData(text: string): { cleanText: string; chartData: ChartData | null } {
   const patterns = [
+    /CHART_DATA:\s*(\{[\s\S]*\})\s*$/,
     /```CHART_DATA\s*\n([\s\S]*?)\n```/,
     /```json\s*\n?\s*CHART_DATA\s*\n([\s\S]*?)\n```/,
     /```\s*CHART_DATA\s*\n([\s\S]*?)\n```/,
@@ -49,8 +50,15 @@ function parseChartData(text: string): { cleanText: string; chartData: ChartData
     if (match) {
       try {
         const jsonStr = match[1].replace(/,\s*([}\]])/g, "$1");
-        const chartData = JSON.parse(jsonStr) as ChartData;
-        if (chartData.type && chartData.data && chartData.dataKeys) {
+        const parsed = JSON.parse(jsonStr);
+        const chartData: ChartData = {
+          type: parsed.type,
+          title: parsed.title,
+          data: parsed.data,
+          dataKeys: parsed.dataKeys || (parsed.dataKey ? [parsed.dataKey] : ["value"]),
+          colors: parsed.colors || ["#ED7C22", "#004CFF", "#10B981"],
+        };
+        if (chartData.type && chartData.data) {
           const cleanText = text.replace(regex, "").trim();
           return { cleanText, chartData };
         }
