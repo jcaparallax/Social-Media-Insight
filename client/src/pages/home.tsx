@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Copy, Check, ArrowUp, X, RefreshCw } from "lucide-react";
+import thinkingIcon from "@assets/ChatGPT_Image_1_mar_2026,_02_38_22_p.m._1772397516079.png";
 import { SiInstagram, SiFacebook, SiTiktok } from "react-icons/si";
 import { marked } from "marked";
 import {
@@ -162,14 +163,14 @@ function useChartColors() {
 
 function ThinkingAnimation() {
   return (
-    <div className="flex items-start gap-3 mb-6">
-      <div className="thinking-logo">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="hsl(var(--primary))" strokeWidth="2" className="thinking-circle" />
-          <circle cx="12" cy="12" r="4" fill="hsl(var(--primary))" className="thinking-dot" />
-        </svg>
-      </div>
-      <div className="flex items-center gap-1.5 pt-1">
+    <div className="flex items-center gap-3 mb-6">
+      <img
+        src={thinkingIcon}
+        alt="Thinking"
+        className="thinking-icon w-8 h-8 rounded-full"
+        data-testid="img-thinking"
+      />
+      <div className="flex items-center gap-1.5">
         <div className="thinking-dot-bounce" style={{ animationDelay: "0ms" }} />
         <div className="thinking-dot-bounce" style={{ animationDelay: "150ms" }} />
         <div className="thinking-dot-bounce" style={{ animationDelay: "300ms" }} />

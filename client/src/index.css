@@ -308,13 +308,8 @@
   40% { transform: translateY(-6px); opacity: 1; }
 }
 
-.thinking-logo {
-  animation: thinking-pulse 2s ease-in-out infinite;
-}
-
-.thinking-circle {
-  animation: thinking-rotate 3s linear infinite;
-  transform-origin: center;
+.thinking-icon {
+  animation: thinking-rotate 3s linear infinite, thinking-pulse 2s ease-in-out infinite;
 }
 
 .thinking-dot-bounce {
