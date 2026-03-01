@@ -148,6 +148,7 @@ function buildMonthlyData(
         comments: sumField(igMonth, "Engagement: Comments"),
         saves: sumField(igMonth, "Engagement: Saves"),
         shares: sumField(igMonth, "Engagement: Shares"),
+        has_followers_data: igFollowersMonth.length > 0,
       },
       meta_ads: {
         spend: sumField(adsMonth, "Performance: Amount spent"),

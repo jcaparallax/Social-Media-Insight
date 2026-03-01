@@ -29,6 +29,7 @@ export interface MonthlyData {
     comments: number;
     saves: number;
     shares: number;
+    has_followers_data: boolean;
   };
   meta_ads: {
     spend: number;

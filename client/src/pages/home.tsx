@@ -48,7 +48,7 @@ function getMonthYear(ym: string): string {
 
 interface MonthlyData {
   facebook: { reach: number; engagement: number; followers_total: number };
-  instagram: { reach: number; engagement: number; new_followers: number; likes: number; comments: number; saves: number; shares: number };
+  instagram: { reach: number; engagement: number; new_followers: number; likes: number; comments: number; saves: number; shares: number; has_followers_data: boolean };
   meta_ads: { spend: number; impressions: number; clicks: number; ctr: number };
 }
 
@@ -98,7 +98,7 @@ function aggregatePlazaData(response: SheetsApiResponse, selectedPlazaIds: strin
   for (const ym of months) {
     const agg: MonthlyData = {
       facebook: { reach: 0, engagement: 0, followers_total: 0 },
-      instagram: { reach: 0, engagement: 0, new_followers: 0, likes: 0, comments: 0, saves: 0, shares: 0 },
+      instagram: { reach: 0, engagement: 0, new_followers: 0, likes: 0, comments: 0, saves: 0, shares: 0, has_followers_data: false },
       meta_ads: { spend: 0, impressions: 0, clicks: 0, ctr: 0 },
     };
     let totalImpressions = 0;
@@ -116,6 +116,7 @@ function aggregatePlazaData(response: SheetsApiResponse, selectedPlazaIds: strin
       agg.instagram.comments += m.instagram.comments;
       agg.instagram.saves += m.instagram.saves;
       agg.instagram.shares += m.instagram.shares;
+      if (m.instagram.has_followers_data) agg.instagram.has_followers_data = true;
       agg.meta_ads.spend += m.meta_ads.spend;
       agg.meta_ads.impressions += m.meta_ads.impressions;
       agg.meta_ads.clicks += m.meta_ads.clicks;
@@ -629,8 +630,7 @@ function DefaultCharts({ data }: { data: AggregatedData }) {
 
   const followersData = months.map((ym) => {
     const m = data.monthly[ym];
-    const hasIgData = m.instagram.reach > 0 || m.instagram.likes > 0 || m.instagram.comments > 0 || m.instagram.saves > 0 || m.instagram.shares > 0;
-    const isMissing = m.instagram.new_followers === 0 && !hasIgData;
+    const isMissing = !m.instagram.has_followers_data;
     return {
       name: getMonthLabel(ym),
       Seguidores: isMissing ? missingBarValue : m.instagram.new_followers,
