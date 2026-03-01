@@ -1,0 +1,41 @@
+Fix 5 data visualization issues in client/src/pages/home.tsx. Do NOT change anything else.
+
+ISSUE 1 — Reach chart: separate FB and IG into two stacked charts
+The current BarChart "Alcance Mensual por Plataforma" shows FB and IG on the same Y axis. FB is 10-60x larger than IG so Instagram is invisible.
+Fix: Replace with two separate BarCharts stacked vertically inside the same card:
+- Top: "Alcance Facebook" (blue #1877F2), with its own Y axis scale
+- Bottom: "Alcance Instagram" (pink #E1306C), with its own Y axis scale
+Each chart height: 160px. Card height adjusts to fit both.
+
+ISSUE 2 — KPI cards: split Engagement Rate into two separate cards
+The current single "Engagement Rate" card shows an average of FB + IG combined. This hides that IG engages 3x more than FB.
+Fix: Replace that one card with two cards:
+- "Eng. Rate Facebook" — calculated as fb.engagement / fb.reach * 100
+- "Eng. Rate Instagram" — calculated as (ig.likes + ig.comments + ig.saves + ig.shares) / ig.reach * 100
+Same card style as existing KPI cards. Show delta vs previous month for each.
+
+ISSUE 3 — Pie chart → horizontal bar chart
+"Tipo de Interacciones — Instagram" is a pie chart where Likes = 92%, making other slices invisible.
+Fix: Replace PieChart with a horizontal BarChart:
+- One bar per interaction type: Likes, Comentarios, Guardados, Compartidos
+- Horizontal layout (layout="vertical" in Recharts)
+- Show absolute values with LabelList on each bar
+- Use the same colors: Likes #E1306C, Comentarios #F77737, Guardados #FCAF45, Compartidos #833AB4
+- Keep the same card title
+
+ISSUE 4 — Missing data vs real zeros in followers chart
+Nov and Dic show 0 new followers in the "Nuevos Seguidores Mensuales" chart, but these are missing data, not real zeros.
+Fix: Before rendering, check if a month has ANY Instagram follower rows in the data. If new_followers === 0 AND there are no rows for that month, treat it as missing (N/D).
+- Missing months: render a gray bar with opacity 0.3 and a label "N/D" instead of "0"
+- Real zero: render normally
+
+ISSUE 5 — Follower delta: absolute value prominent, percentage secondary
+The KPI card "Nuevos Seguidores IG" shows +5500% (from 1 to 56). This is mathematically correct but misleading.
+Fix: When the previous month value is less than 10, hide the percentage delta entirely and show only the absolute difference: "+55 vs mes anterior" in muted text. Keep the percentage delta for cases where previous month >= 10.
+
+CONSTRAINTS:
+- Only touch client/src/pages/home.tsx
+- Keep all other charts, colors, layout, and components intact
+- Keep TypeScript strict
+
+Show me the plan before building.
