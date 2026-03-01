@@ -1,0 +1,42 @@
+I need to refactor this social media dashboard to make it scalable. The current version hardcodes the plaza filter and months. I want a proper multi-plaza architecture.
+
+ARCHITECTURE CHANGES:
+
+1. CREATE `server/config/plazas.ts`
+   A config array where each plaza has:
+   - id (slug, e.g. "patio-santa-fe")
+   - displayName (e.g. "Patio Santa Fe")
+   - fbAccount (filter value for "Account: Account name" in Facebook Page Insights)
+   - igAccount (filter value for "Account: Account name" in Instagram sheets)
+   - adsCampaignKeyword (substring to match in "Campaign: Campaign name" in Meta Ads)
+
+   Seed it with the one plaza we have:
+   { id: "patio-santa-fe", displayName: "Patio Santa Fe", fbAccount: "Patio Santa Fe", igAccount: "patiosantafe", adsCampaignKeyword: "f1_01sfe" }
+
+2. REWRITE `server/sheets.ts`
+   - Replace GOOGLE_SHEETS_CREDENTIALS service account auth with the Google Workspace connector that is already connected in this Replit project (use whatever env vars Replit provides for it)
+   - Remove hardcoded TARGET_MONTHS. Instead, compute the last 4 complete calendar months dynamically at runtime
+   - Remove hardcoded plaza filter. `fetchSheetsData(plazaIds: string[])` now accepts an array of plaza ids, looks them up in the plazas config, and filters accordingly. If plazaIds is empty or ["all"], include all plazas
+   - Return data keyed by plaza id: `{ plazas: { [plazaId]: { months, monthly } }, availablePlazas: PlazaConfig[] }`
+
+3. UPDATE `server/routes.ts`
+   - `GET /api/sheets-data?plazas=all` or `?plazas=patio-santa-fe,otra-plaza` — passes plazaIds to fetchSheetsData
+   - `POST /api/chat` — body now includes `plazaIds: string[]` and `months?: string[]`. Backend fetches only the filtered data for those plazas/months before building the system prompt. No more sending the entire dataset
+   - `GET /api/plazas` — returns the list of available plazas from config (id + displayName)
+
+4. UPDATE `client/src/pages/home.tsx`
+   - On load, fetch `/api/plazas` to get the plaza list
+   - Add a multi-select dropdown in the header (right side, next to the client logo) with all plazas listed and an "Todas las plazas" option that selects all. Default: all selected
+   - When plaza selection changes, re-fetch `/api/sheets-data` with the selected plazas and update the dashboard
+   - Pass `plazaIds` in every `/api/chat` request
+   - KPI cards and charts should aggregate across selected plazas when multiple are selected
+   - Keep all existing chart types, colors, layout, and component structure intact
+
+CONSTRAINTS:
+- Do NOT change the visual design, chart styles, or color scheme
+- Do NOT add any new UI sections beyond the plaza multi-select
+- Do NOT use SQLite or any local database
+- Google Sheets remains the single source of truth
+- Keep TypeScript strict — no `any` types
+
+Start in Plan Mode. Show the full plan including which files you'll create/modify before building anything.
