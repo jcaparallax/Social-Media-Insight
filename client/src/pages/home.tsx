@@ -295,12 +295,12 @@ function DefaultChartTooltip({ active, payload, label }: any) {
     tiktok: tiktok.engagement_rate,
   };
   return (
-    <div style={{ background: "var(--card)", borderRadius: "8px", border: `1px solid ${colors.border}`, padding: "8px 12px", fontSize: "12px" }}>
+    <div style={{ background: "#ffffff", color: "#000000", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }}>
       <p style={{ fontWeight: 600, marginBottom: 4 }}>{label}</p>
       {payload.map((entry: any) => (
         <div key={entry.dataKey} style={{ color: entry.color, marginBottom: 2 }}>
           <span>{entry.name}: {formatNumber(entry.value)}</span>
-          <span style={{ color: colors.mutedFg, marginLeft: 8 }}>Eng: {engRates[entry.dataKey]}%</span>
+          <span style={{ color: "#666666", marginLeft: 8 }}>Eng: {engRates[entry.dataKey]}%</span>
         </div>
       ))}
     </div>
@@ -324,7 +324,7 @@ function DefaultChart() {
           <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
           <XAxis dataKey="month" tick={{ fontSize: 12, fill: colors.mutedFg }} />
           <YAxis tick={{ fontSize: 12, fill: colors.mutedFg }} tickFormatter={(v) => formatNumber(v)} />
-          <Tooltip content={<DefaultChartTooltip />} />
+          <Tooltip content={<DefaultChartTooltip />} cursor={false} />
           <Legend wrapperStyle={{ fontSize: "12px" }} />
           <Bar dataKey="instagram" name="Instagram" fill={colors.chart1} radius={[6, 6, 0, 0]}>
             <LabelList dataKey="instagram" position="top" formatter={(v: number) => formatNumber(v)} style={{ fontSize: 10, fill: colors.mutedFg }} />
@@ -355,7 +355,7 @@ function DynamicChart({ chartData }: { chartData: ChartData }) {
             <CartesianGrid strokeDasharray="3 3" stroke={themeColors.border} />
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
             <YAxis tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
-            <Tooltip contentStyle={{ borderRadius: "8px", border: `1px solid ${themeColors.border}`, fontSize: "12px" }} />
+            <Tooltip contentStyle={{ background: "#ffffff", color: "#000000", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} cursor={false} />
             <Legend wrapperStyle={{ fontSize: "12px" }} />
             {dataKeys.map((key, i) => (
               <Line key={key} type="monotone" dataKey={key} stroke={chartColors[i] || defaultColors[i] || themeColors.primary} strokeWidth={2} dot={{ r: 4 }} />
@@ -366,7 +366,7 @@ function DynamicChart({ chartData }: { chartData: ChartData }) {
             <CartesianGrid strokeDasharray="3 3" stroke={themeColors.border} />
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
             <YAxis tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
-            <Tooltip contentStyle={{ borderRadius: "8px", border: `1px solid ${themeColors.border}`, fontSize: "12px" }} />
+            <Tooltip contentStyle={{ background: "#ffffff", color: "#000000", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} cursor={false} />
             <Legend wrapperStyle={{ fontSize: "12px" }} />
             {dataKeys.map((key, i) => (
               <Area key={key} type="monotone" dataKey={key} fill={chartColors[i] || defaultColors[i] || themeColors.primary} stroke={chartColors[i] || defaultColors[i] || themeColors.primary} fillOpacity={0.2} />
@@ -377,7 +377,7 @@ function DynamicChart({ chartData }: { chartData: ChartData }) {
             <CartesianGrid strokeDasharray="3 3" stroke={themeColors.border} />
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
             <YAxis tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
-            <Tooltip contentStyle={{ borderRadius: "8px", border: `1px solid ${themeColors.border}`, fontSize: "12px" }} formatter={(value: number) => formatNumber(value)} />
+            <Tooltip contentStyle={{ background: "#ffffff", color: "#000000", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} formatter={(value: number) => formatNumber(value)} cursor={false} />
             <Legend wrapperStyle={{ fontSize: "12px" }} />
             {dataKeys.map((key, i) => (
               <Bar key={key} dataKey={key} fill={chartColors[i] || defaultColors[i] || themeColors.primary} radius={[6, 6, 0, 0]}>
