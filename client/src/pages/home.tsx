@@ -235,7 +235,7 @@ function KpiCards() {
           <span className="text-xs font-medium text-muted-foreground">Facebook</span>
         </div>
         <p className="text-2xl font-bold text-foreground" data-testid="text-fb-followers">{formatNumber(facebook.followers)}</p>
-        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-fb-followers">Seguidores totales</p>
+        <p className="text-[10px] text-[#392e22] font-bold" data-testid="subtitle-fb-followers">Seguidores totales</p>
         <p className={`text-xs font-medium ${fbGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>{fbGrowth >= 0 ? "+" : ""}{formatNumber(fbGrowth)}</p>
         <p className="text-[10px] text-muted-foreground" data-testid="subtitle-fb-growth">Crecimiento {curMonth} vs {prevMonth}</p>
       </div>
