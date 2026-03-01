@@ -334,7 +334,7 @@ export default function Home() {
     <div className="h-screen flex flex-col" style={{ backgroundColor: "#FAF6F0" }}>
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         <div className={`flex flex-col h-full transition-all duration-300 ${canvasOpen ? "w-full md:w-[42%]" : "w-full"}`}>
-          <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "#E8E0D4" }}>
+          <div className="flex items-center justify-between px-4 py-3 border-b pt-[15px] pb-[15px]" style={{ borderColor: "#E8E0D4" }}>
             <div className="flex items-center gap-2">
               <img
                 src={AGENCY_LOGO}
