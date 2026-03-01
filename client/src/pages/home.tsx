@@ -20,7 +20,6 @@ import {
 import {
   AGENCY_LOGO,
   CLIENT_LOGO,
-  QUESTION_CHIPS,
 } from "@/data/config";
 import { mockData, mockDataContext } from "@/data/mock-santa-fe";
 import { apiRequest } from "@/lib/queryClient";
@@ -397,8 +396,39 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeChart, setActiveChart] = useState<ChartData | null>(null);
   const [canvasOpen, setCanvasOpen] = useState(true);
+  const [questionChips, setQuestionChips] = useState<string[]>([]);
+  const [chipsLoading, setChipsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    async function fetchChips() {
+      try {
+        const res = await apiRequest("POST", "/api/chat", {
+          messages: [
+            {
+              role: "user",
+              content:
+                "Based on this social media data, generate 6 relevant opening questions a marketing manager would want to ask. Return ONLY a JSON array of 6 questions in Spanish, nothing else. Example: [\"question 1\", \"question 2\", ...]",
+            },
+          ],
+          context: mockDataContext,
+        });
+        const data = await res.json();
+        const stripped = data.response.replace(/\n?SUGGESTED:\s*\[[\s\S]*?\]\s*$/, "").trim();
+        const raw = stripped.replace(/```json\s*/g, "").replace(/```/g, "").trim();
+        const jsonMatch = raw.match(/\[[\s\S]*\]/);
+        const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setQuestionChips(parsed);
+        }
+      } catch {
+      } finally {
+        setChipsLoading(false);
+      }
+    }
+    fetchChips();
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -486,17 +516,28 @@ export default function Home() {
               <div className="max-w-xl mx-auto pt-8">
                 <h1 className="text-2xl font-semibold text-foreground mb-6">Hola, pregunta lo que necesites sobre tus redes sociales.</h1>
                 <div className="flex flex-wrap gap-2">
-                  {QUESTION_CHIPS.map((q, i) => (
-                    <button
-                      key={i}
-                      onClick={() => sendMessage(q)}
-                      disabled={isLoading}
-                      className="chip-button text-sm px-4 py-2 rounded-full border border-border text-foreground bg-transparent transition-all disabled:opacity-50"
-                      data-testid={`button-chip-${i}`}
-                    >
-                      {q}
-                    </button>
-                  ))}
+                  {chipsLoading ? (
+                    [180, 150, 200, 160, 190, 170].map((w, i) => (
+                      <div
+                        key={i}
+                        className="h-9 rounded-full bg-muted animate-pulse"
+                        style={{ width: `${w}px` }}
+                        data-testid={`skeleton-chip-${i}`}
+                      />
+                    ))
+                  ) : (
+                    questionChips.map((q, i) => (
+                      <button
+                        key={i}
+                        onClick={() => sendMessage(q)}
+                        disabled={isLoading}
+                        className="chip-button text-sm px-4 py-2 rounded-full border border-border text-foreground bg-transparent transition-all disabled:opacity-50"
+                        data-testid={`button-chip-${i}`}
+                      >
+                        {q}
+                      </button>
+                    ))
+                  )}
                 </div>
               </div>
             )}

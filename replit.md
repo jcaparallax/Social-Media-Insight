@@ -11,7 +11,7 @@ A social media analytics chat app for marketing agency Parallax, serving client 
 
 ## Key Files
 - `client/src/pages/home.tsx` - Main page with split layout (chat + canvas)
-- `client/src/data/config.ts` - Client/agency logos, colors, question chips
+- `client/src/data/config.ts` - Client/agency logos, colors
 - `client/src/data/mock-santa-fe.ts` - Mock analytics data for Patio Santa Fe
 - `server/routes.ts` - `/api/chat` (Claude AI) and `/api/data` (mock data) endpoints
 - `server/mock-data.ts` - Server-side mock data
@@ -24,7 +24,7 @@ A social media analytics chat app for marketing agency Parallax, serving client 
 - Mobile responsive (stacks vertically)
 
 ## Features
-- 6 predefined question chips (Spanish)
+- 6 AI-generated question chips (Spanish, dynamically fetched from Claude on load)
 - Chat with Claude AI using mock data as context
 - KPI summary cards (followers, growth, engagement, reach)
 - Bar chart for 3-month follower growth
