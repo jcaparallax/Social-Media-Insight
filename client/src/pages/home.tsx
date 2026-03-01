@@ -225,7 +225,7 @@ function KpiCards() {
           <span className="text-xs font-medium text-muted-foreground">Instagram</span>
         </div>
         <p className="text-2xl font-bold text-foreground" data-testid="text-ig-followers">{formatNumber(instagram.followers)}</p>
-        <p className="text-[10px] font-bold text-[#000000]" data-testid="subtitle-ig-followers">Seguidores totales</p>
+        <p className="text-[10px] font-bold text-[#392e22]" data-testid="subtitle-ig-followers">Seguidores totales</p>
         <p className={`text-xs font-medium ${igGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>{igGrowth >= 0 ? "+" : ""}{formatNumber(igGrowth)}</p>
         <p className="text-[10px] text-muted-foreground" data-testid="subtitle-ig-growth">Crecimiento {curMonth} vs {prevMonth}</p>
       </div>
