@@ -144,6 +144,17 @@ export async function fetchSheetsData() {
   const igFollowersCurrent = igFollowersByMonth[periods.current] || [];
   const igFollowersPrev = igFollowersByMonth[periods.previous] || [];
 
+  console.log("[DEBUG] Instagram Page Insights rows for patiosantafe (current period):", JSON.stringify(igCurrentRows.map(r => ({
+    account: r["Account: Account name"],
+    date: r["Report: Date"] || r["Report: Start date"],
+    engagement: r["Performance: Engagements"],
+    reach: r["Performance: Reach"],
+    likes: r["Engagement: Likes"],
+    comments: r["Engagement: Comments"],
+    saves: r["Engagement: Saves"],
+    shares: r["Engagement: Shares"],
+  })), null, 2));
+
   const adsCurrent = adsByMonth[periods.current] || [];
 
   const sumField = (rows: Record<string, string>[], field: string) =>
@@ -168,7 +179,7 @@ export async function fetchSheetsData() {
       new_followers: sumField(igFollowersCurrent, "Engagement: New followers"),
       new_followers_prev: sumField(igFollowersPrev, "Engagement: New followers"),
       reach: sumField(igCurrentRows, "Performance: Reach"),
-      engagement: sumField(igCurrentRows, "Engagement: Posts engagements"),
+      engagement: sumField(igCurrentRows, "Performance: Engagements"),
       likes: sumField(igCurrentRows, "Engagement: Likes"),
       comments: sumField(igCurrentRows, "Engagement: Comments"),
       saves: sumField(igCurrentRows, "Engagement: Saves"),
