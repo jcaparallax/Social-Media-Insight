@@ -1,0 +1,53 @@
+Replace the mock data with real data from Google Sheets. The app should fetch data from the Sheets API on load.
+
+Spreadsheet ID: 15PdHhPO-ecHavV27SLfkh6Nx-fXGM06As0-5O_i8vvs
+
+Create a backend endpoint /api/sheets-data that:
+1. Reads these 4 sheets: "Facebook Page Insights", "Instagram Page Insights", "Instagram Followers 30 días", "Meta Ads"
+2. Authenticates using a Google Service Account — credentials JSON stored in Replit Secret named GOOGLE_SHEETS_CREDENTIALS
+3. Filters data for Patio Santa Fe only:
+   - Facebook: rows where "Account: Account name" === "Patio Santa Fe"
+   - Instagram: rows where "Account: Account name" === "patiosantafe"
+   - Meta Ads: rows where "Campaign: Campaign name" contains "f1_01sfe" (case-insensitive)
+4. Aggregates by month using "Report: Date" or "Report: Start date"
+5. Returns this JSON structure:
+{
+  plaza: "Patio Santa Fe",
+  period: { current: "YYYY-MM", previous: "YYYY-MM", two_months_ago: "YYYY-MM" },
+  facebook: {
+    followers_total: number,
+    followers_prev: number,
+    followers_2m: number,
+    reach: number,
+    engagement: number
+  },
+  instagram: {
+    new_followers: number,
+    new_followers_prev: number,
+    reach: number,
+    engagement: number,
+    likes: number,
+    comments: number,
+    saves: number,
+    shares: number
+  },
+  meta_ads: {
+    spend: number,
+    impressions: number,
+    clicks: number,
+    ctr: number,
+    cpm: number
+  }
+}
+
+Field mappings:
+- FB followers_total: latest "Engagement: Lifetime followers" from "Facebook Page Insights"
+- FB reach: sum of "Performance: Reach" for current month
+- FB engagement: sum of "Engagement: Posts engagements" for current month
+- IG new_followers: sum of "Engagement: New followers" from "Instagram Followers 30 días" for current month
+- IG reach/engagement/likes/comments/saves/shares: from "Instagram Page Insights" for current period
+- Meta Ads: sum spend/impressions/clicks, average CTR and CPM for current month
+
+Update the frontend to call /api/sheets-data on load instead of mock data. Keep mock data as fallback if the API call fails.
+
+Do not change anything else.
