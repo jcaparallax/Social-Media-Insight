@@ -532,7 +532,7 @@ export default function Home() {
                         key={i}
                         onClick={() => sendMessage(q)}
                         disabled={isLoading}
-                        className="chip-button px-4 py-2 rounded-full border border-border text-foreground bg-transparent transition-all disabled:opacity-50 text-[13px]"
+                        className="chip-button px-4 py-2 rounded-full border border-border text-foreground bg-transparent transition-all disabled:opacity-50 text-[13px] text-left"
                         data-testid={`button-chip-${i}`}
                       >
                         {q}
