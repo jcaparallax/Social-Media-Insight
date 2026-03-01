@@ -286,3 +286,16 @@
     inset: -1px;
   }
 }
+
+.chip-button:hover:not(:disabled) {
+  background-color: #ED7C22 !important;
+  color: #fff !important;
+  border-color: #ED7C22 !important;
+}
+
+@media print {
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
