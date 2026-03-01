@@ -63,7 +63,7 @@ interface ChartData {
 
 function parseChartData(text: string): { cleanText: string; chartData: ChartData | null } {
   const patterns = [
-    /CHART_DATA:\s*(\{[\s\S]*\})\s*$/,
+    /CHART_DATA:\s*(\{[^\n]*\})/,
     /```CHART_DATA\s*\n([\s\S]*?)\n```/,
     /```json\s*\n?\s*CHART_DATA\s*\n([\s\S]*?)\n```/,
     /```\s*CHART_DATA\s*\n([\s\S]*?)\n```/,
