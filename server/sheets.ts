@@ -8,6 +8,8 @@ const SHEET_NAMES = [
   "Meta Ads",
 ];
 
+const TARGET_MONTHS = ["2025-11", "2025-12", "2026-01", "2026-02"];
+
 function getAuth() {
   const credsJson = process.env.GOOGLE_SHEETS_CREDENTIALS;
   if (!credsJson) throw new Error("GOOGLE_SHEETS_CREDENTIALS secret not set");
@@ -53,29 +55,22 @@ function getYearMonth(dateStr: string): string {
   return `${y}-${m}`;
 }
 
-function getCurrentPeriods() {
-  const now = new Date();
-  const cur = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const prev = new Date(cur.getFullYear(), cur.getMonth() - 1, 1);
-  const twoAgo = new Date(prev.getFullYear(), prev.getMonth() - 1, 1);
-
-  function fmt(d: Date) {
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+function groupByMonth<T extends Record<string, string>>(rows: T[]): Record<string, T[]> {
+  const byMonth: Record<string, T[]> = {};
+  for (const row of rows) {
+    const ym = getYearMonth(row["Report: Date"] || row["Report: Start date"]);
+    if (ym) {
+      if (!byMonth[ym]) byMonth[ym] = [];
+      byMonth[ym].push(row);
+    }
   }
-
-  return {
-    current: fmt(cur),
-    previous: fmt(prev),
-    two_months_ago: fmt(twoAgo),
-  };
+  return byMonth;
 }
 
 export async function fetchSheetsData() {
   const [fbRows, igRows, igFollowersRows, adsRows] = await Promise.all(
     SHEET_NAMES.map((name) => readSheet(name))
   );
-
-  const periods = getCurrentPeriods();
 
   const fbFiltered = fbRows.filter(
     (r) => r["Account: Account name"] === "Patio Santa Fe"
@@ -90,47 +85,15 @@ export async function fetchSheetsData() {
     (r["Campaign: Campaign name"] || "").toLowerCase().includes("f1_01sfe")
   );
 
-  const fbByMonth: Record<string, typeof fbFiltered> = {};
-  for (const row of fbFiltered) {
-    const ym = getYearMonth(row["Report: Date"] || row["Report: Start date"]);
-    if (ym) {
-      if (!fbByMonth[ym]) fbByMonth[ym] = [];
-      fbByMonth[ym].push(row);
-    }
-  }
+  const fbByMonth = groupByMonth(fbFiltered);
+  const igByMonth = groupByMonth(igFiltered);
+  const igFollowersByMonth = groupByMonth(igFollowersFiltered);
+  const adsByMonth = groupByMonth(adsFiltered);
 
-  const igByMonth: Record<string, typeof igFiltered> = {};
-  for (const row of igFiltered) {
-    const ym = getYearMonth(row["Report: Date"] || row["Report: Start date"]);
-    if (ym) {
-      if (!igByMonth[ym]) igByMonth[ym] = [];
-      igByMonth[ym].push(row);
-    }
-  }
+  const sumField = (rows: Record<string, string>[], field: string) =>
+    rows.reduce((acc, r) => acc + parseNum(r[field]), 0);
 
-  const igFollowersByMonth: Record<string, typeof igFollowersFiltered> = {};
-  for (const row of igFollowersFiltered) {
-    const ym = getYearMonth(row["Report: Date"] || row["Report: Start date"]);
-    if (ym) {
-      if (!igFollowersByMonth[ym]) igFollowersByMonth[ym] = [];
-      igFollowersByMonth[ym].push(row);
-    }
-  }
-
-  const adsByMonth: Record<string, typeof adsFiltered> = {};
-  for (const row of adsFiltered) {
-    const ym = getYearMonth(row["Report: Date"] || row["Report: Start date"]);
-    if (ym) {
-      if (!adsByMonth[ym]) adsByMonth[ym] = [];
-      adsByMonth[ym].push(row);
-    }
-  }
-
-  const fbCurrent = fbByMonth[periods.current] || [];
-  const fbPrev = fbByMonth[periods.previous] || [];
-  const fb2m = fbByMonth[periods.two_months_ago] || [];
-
-  const latestFbFollowers = (rows: typeof fbFiltered) => {
+  const latestFbFollowers = (rows: Record<string, string>[]) => {
     if (rows.length === 0) return 0;
     const sorted = [...rows].sort(
       (a, b) =>
@@ -140,57 +103,48 @@ export async function fetchSheetsData() {
     return parseNum(sorted[0]["Engagement: Lifetime followers"]);
   };
 
-  const igCurrentRows = igByMonth[periods.current] || [];
-  const igFollowersCurrent = igFollowersByMonth[periods.current] || [];
-  const igFollowersPrev = igFollowersByMonth[periods.previous] || [];
+  const monthly: Record<string, {
+    facebook: { reach: number; engagement: number; followers_total: number };
+    instagram: { reach: number; engagement: number; new_followers: number; likes: number; comments: number; saves: number; shares: number };
+    meta_ads: { spend: number; impressions: number; clicks: number; ctr: number };
+  }> = {};
 
-  console.log("[DEBUG] Instagram Page Insights rows for patiosantafe (current period):", JSON.stringify(igCurrentRows.map(r => ({
-    account: r["Account: Account name"],
-    date: r["Report: Date"] || r["Report: Start date"],
-    engagement: r["Performance: Engagements"],
-    reach: r["Performance: Reach"],
-    likes: r["Engagement: Likes"],
-    comments: r["Engagement: Comments"],
-    saves: r["Engagement: Saves"],
-    shares: r["Engagement: Shares"],
-  })), null, 2));
+  for (const ym of TARGET_MONTHS) {
+    const fbMonth = fbByMonth[ym] || [];
+    const igMonth = igByMonth[ym] || [];
+    const igFollowersMonth = igFollowersByMonth[ym] || [];
+    const adsMonth = adsByMonth[ym] || [];
 
-  const adsCurrent = adsByMonth[periods.current] || [];
+    const adsClickSum = sumField(adsMonth, "Performance: Link clicks");
+    const adsImpressionSum = sumField(adsMonth, "Performance: Impressions");
 
-  const sumField = (rows: Record<string, string>[], field: string) =>
-    rows.reduce((acc, r) => acc + parseNum(r[field]), 0);
-
-  const avgField = (rows: Record<string, string>[], field: string) => {
-    if (rows.length === 0) return 0;
-    return sumField(rows, field) / rows.length;
-  };
+    monthly[ym] = {
+      facebook: {
+        reach: sumField(fbMonth, "Performance: Reach"),
+        engagement: sumField(fbMonth, "Engagement: Posts engagements"),
+        followers_total: latestFbFollowers(fbMonth) || latestFbFollowers(fbFiltered),
+      },
+      instagram: {
+        reach: sumField(igMonth, "Performance: Reach"),
+        engagement: sumField(igMonth, "Performance: Engagements"),
+        new_followers: sumField(igFollowersMonth, "Engagement: New followers"),
+        likes: sumField(igMonth, "Engagement: Likes"),
+        comments: sumField(igMonth, "Engagement: Comments"),
+        saves: sumField(igMonth, "Engagement: Saves"),
+        shares: sumField(igMonth, "Engagement: Shares"),
+      },
+      meta_ads: {
+        spend: sumField(adsMonth, "Performance: Amount spent"),
+        impressions: adsImpressionSum,
+        clicks: adsClickSum,
+        ctr: adsImpressionSum > 0 ? (adsClickSum / adsImpressionSum) * 100 : 0,
+      },
+    };
+  }
 
   return {
     plaza: "Patio Santa Fe",
-    period: periods,
-    facebook: {
-      followers_total: latestFbFollowers(fbCurrent) || latestFbFollowers(fbFiltered),
-      followers_prev: latestFbFollowers(fbPrev),
-      followers_2m: latestFbFollowers(fb2m),
-      reach: sumField(fbCurrent, "Performance: Reach"),
-      engagement: sumField(fbCurrent, "Engagement: Posts engagements"),
-    },
-    instagram: {
-      new_followers: sumField(igFollowersCurrent, "Engagement: New followers"),
-      new_followers_prev: sumField(igFollowersPrev, "Engagement: New followers"),
-      reach: sumField(igCurrentRows, "Performance: Reach"),
-      engagement: sumField(igCurrentRows, "Performance: Engagements"),
-      likes: sumField(igCurrentRows, "Engagement: Likes"),
-      comments: sumField(igCurrentRows, "Engagement: Comments"),
-      saves: sumField(igCurrentRows, "Engagement: Saves"),
-      shares: sumField(igCurrentRows, "Engagement: Shares"),
-    },
-    meta_ads: {
-      spend: sumField(adsCurrent, "Performance: Amount spent"),
-      impressions: sumField(adsCurrent, "Performance: Impressions"),
-      clicks: sumField(adsCurrent, "Performance: Link clicks"),
-      ctr: avgField(adsCurrent, "Performance: CTR (link click-through rate)"),
-      cpm: avgField(adsCurrent, "Performance: CPM (cost per 1,000 impressions)"),
-    },
+    months: TARGET_MONTHS,
+    monthly,
   };
 }

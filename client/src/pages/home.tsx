@@ -17,12 +17,13 @@ import {
   Area,
   LabelList,
   Cell,
+  PieChart,
+  Pie,
 } from "recharts";
 import {
   AGENCY_LOGO,
   CLIENT_LOGO,
 } from "@/data/config";
-import { mockData as fallbackMockData, mockDataContext as fallbackMockDataContext } from "@/data/mock-santa-fe";
 import { apiRequest } from "@/lib/queryClient";
 
 marked.setOptions({
@@ -30,42 +31,23 @@ marked.setOptions({
   gfm: true,
 });
 
-const SPANISH_MONTHS: Record<string, string> = {
-  january: "Ene", february: "Feb", march: "Mar", april: "Abr",
-  may: "May", june: "Jun", july: "Jul", august: "Ago",
-  september: "Sep", october: "Oct", november: "Nov", december: "Dic",
+const MONTH_LABELS: Record<string, string> = {
+  "2025-11": "Nov",
+  "2025-12": "Dic",
+  "2026-01": "Ene",
+  "2026-02": "Feb",
 };
 
-const SPANISH_MONTHS_FULL: Record<string, string> = {
-  january: "Enero", february: "Febrero", march: "Marzo", april: "Abril",
-  may: "Mayo", june: "Junio", july: "Julio", august: "Agosto",
-  september: "Septiembre", october: "Octubre", november: "Noviembre", december: "Diciembre",
-};
-
-function getMonthLabel(date: string): string {
-  const [monthName, year] = date.trim().split(/\s+/);
-  const abbr = SPANISH_MONTHS[monthName.toLowerCase()] ?? monthName.slice(0, 3);
-  return `${abbr} ${year ?? ""}`.trim();
+interface MonthlyData {
+  facebook: { reach: number; engagement: number; followers_total: number };
+  instagram: { reach: number; engagement: number; new_followers: number; likes: number; comments: number; saves: number; shares: number };
+  meta_ads: { spend: number; impressions: number; clicks: number; ctr: number };
 }
 
-function getPrevMonthLabel(date: string): string {
-  const [monthName, yearStr] = date.trim().split(/\s+/);
-  const months = Object.keys(SPANISH_MONTHS);
-  const idx = months.indexOf(monthName.toLowerCase());
-  const prevIdx = idx <= 0 ? 11 : idx - 1;
-  const prevYear = idx === 0 ? String(Number(yearStr) - 1) : yearStr;
-  const prevAbbr = SPANISH_MONTHS[months[prevIdx]];
-  return `${prevAbbr} ${prevYear ?? ""}`.trim();
-}
-
-function getTwoMonthsAgoLabel(date: string): string {
-  const [monthName, yearStr] = date.trim().split(/\s+/);
-  const months = Object.keys(SPANISH_MONTHS);
-  const idx = months.indexOf(monthName.toLowerCase());
-  const twoAgoIdx = idx <= 1 ? 12 + idx - 2 : idx - 2;
-  const twoAgoYear = idx < 2 ? String(Number(yearStr) - 1) : yearStr;
-  const twoAgoAbbr = SPANISH_MONTHS[months[twoAgoIdx]];
-  return `${twoAgoAbbr} ${twoAgoYear ?? ""}`.trim();
+interface SheetsApiData {
+  plaza: string;
+  months: string[];
+  monthly: Record<string, MonthlyData>;
 }
 
 interface ChatMessage {
@@ -93,7 +75,7 @@ function MarkdownContent({ content }: { content: string }) {
 }
 
 interface ChartData {
-  type: "bar" | "line" | "area";
+  type: "bar" | "line" | "area" | "pie";
   title: string;
   data: Record<string, unknown>[];
   dataKeys: string[];
@@ -138,6 +120,25 @@ function formatNumber(n: number): string {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + "M";
   if (n >= 1000) return (n / 1000).toFixed(1) + "K";
   return n.toLocaleString();
+}
+
+function formatCurrency(n: number): string {
+  if (n === 0) return "$0";
+  return "$" + formatNumber(n);
+}
+
+function pctDelta(current: number, previous: number): number {
+  if (previous === 0) return current > 0 ? 100 : 0;
+  return +((current - previous) / previous * 100).toFixed(1);
+}
+
+function DeltaBadge({ value, suffix = "%" }: { value: number; suffix?: string }) {
+  const color = value >= 0 ? "text-green-600" : "text-red-600";
+  return (
+    <span className={`text-xs font-medium ${color}`}>
+      {value >= 0 ? "+" : ""}{value}{suffix}
+    </span>
+  );
 }
 
 function useChartColors() {
@@ -209,141 +210,278 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function KpiCards({ data }: { data: typeof fallbackMockData }) {
-  const { instagram, facebook, tiktok, meta_ads, period } = data;
-  const igGrowth = instagram.followers - instagram.followers_prev_month;
-  const fbGrowth = facebook.followers - facebook.followers_prev_month;
-  const ttGrowth = tiktok.followers - tiktok.followers_prev_month;
-  const totalReach = instagram.reach + facebook.reach + tiktok.views;
-  const curMonth = getMonthLabel(period);
-  const prevMonth = getPrevMonthLabel(period);
+function KpiCards({ apiData }: { apiData: SheetsApiData }) {
+  const months = apiData.months;
+  const current = months[months.length - 1];
+  const prev = months[months.length - 2];
+  const threeMonthsAgo = months[0];
+  const cur = apiData.monthly[current];
+  const prv = apiData.monthly[prev];
+  const old = apiData.monthly[threeMonthsAgo];
+
+  const curReach = cur.facebook.reach + cur.instagram.reach;
+  const prevReach = prv.facebook.reach + prv.instagram.reach;
+  const oldReach = old.facebook.reach + old.instagram.reach;
+
+  const curEngagements = cur.instagram.likes + cur.instagram.comments + cur.instagram.saves + cur.instagram.shares + cur.facebook.engagement;
+  const prevEngagements = prv.instagram.likes + prv.instagram.comments + prv.instagram.saves + prv.instagram.shares + prv.facebook.engagement;
+
+  const curEngRate = curReach > 0 ? +(curEngagements / curReach * 100).toFixed(2) : 0;
+  const prevEngRate = prevReach > 0 ? +(prevEngagements / prevReach * 100).toFixed(2) : 0;
 
   return (
     <div className="grid grid-cols-2 xl:grid-cols-3 gap-3 mb-5">
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
-        <div className="flex items-center gap-2 mb-2">
-          <SiInstagram className="text-chart-1" size={16} />
-          <span className="text-xs font-medium text-muted-foreground">Instagram</span>
+        <p className="text-xs mb-1 font-bold text-[#392e22]">Alcance Total</p>
+        <p className="text-2xl font-bold text-foreground" data-testid="text-total-reach">{formatNumber(curReach)}</p>
+        <p className="text-[10px] text-muted-foreground">FB + IG — {MONTH_LABELS[current]}</p>
+        <div className="flex items-center gap-2 mt-1">
+          <DeltaBadge value={pctDelta(curReach, prevReach)} />
+          <span className="text-[10px] text-muted-foreground">vs mes anterior</span>
         </div>
-        <p className="text-2xl font-bold text-foreground" data-testid="text-ig-followers">{formatNumber(instagram.followers)}</p>
-        <p className="text-[10px] font-bold text-[#392e22]" data-testid="subtitle-ig-followers">Nuevos seguidores {curMonth}</p>
-        <p className={`text-xs font-medium ${igGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>{igGrowth >= 0 ? "+" : ""}{formatNumber(igGrowth)}</p>
-        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-ig-growth">vs {prevMonth}</p>
+        <div className="flex items-center gap-2">
+          <DeltaBadge value={pctDelta(curReach, oldReach)} />
+          <span className="text-[10px] text-muted-foreground">vs 3 meses</span>
+        </div>
       </div>
+
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
-        <div className="flex items-center gap-2 mb-2">
-          <SiFacebook className="text-chart-2" size={16} />
-          <span className="text-xs font-medium text-muted-foreground">Facebook</span>
+        <p className="text-xs mb-1 font-bold text-[#392e22]">Engagement Rate</p>
+        <p className="text-2xl font-bold text-foreground" data-testid="text-engagement-rate">{curEngRate}%</p>
+        <p className="text-[10px] text-muted-foreground">Promedio FB + IG</p>
+        <div className="flex items-center gap-2 mt-1">
+          <DeltaBadge value={+(curEngRate - prevEngRate).toFixed(2)} suffix="pp" />
+          <span className="text-[10px] text-muted-foreground">vs mes anterior</span>
         </div>
-        <p className="text-2xl font-bold text-foreground" data-testid="text-fb-followers">{formatNumber(facebook.followers)}</p>
-        <p className="text-[10px] text-[#392e22] font-bold" data-testid="subtitle-fb-followers">Seguidores totales</p>
-        <p className={`text-xs font-medium ${fbGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>{fbGrowth >= 0 ? "+" : ""}{formatNumber(fbGrowth)}</p>
-        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-fb-growth">Crecimiento {curMonth} vs {prevMonth}</p>
       </div>
+
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
-        <div className="flex items-center gap-2 mb-2">
-          <SiTiktok size={16} className="text-chart-5" />
-          <span className="text-xs font-medium text-muted-foreground">TikTok</span>
+        <p className="text-xs mb-1 font-bold text-[#392e22]">Interacciones Totales</p>
+        <p className="text-2xl font-bold text-foreground" data-testid="text-total-interactions">{formatNumber(curEngagements)}</p>
+        <p className="text-[10px] text-muted-foreground">IG + FB — {MONTH_LABELS[current]}</p>
+        <div className="flex items-center gap-2 mt-1">
+          <DeltaBadge value={pctDelta(curEngagements, prevEngagements)} />
+          <span className="text-[10px] text-muted-foreground">vs mes anterior</span>
         </div>
-        <p className="text-2xl font-bold text-foreground" data-testid="text-tt-followers">{tiktok.followers > 0 ? formatNumber(tiktok.followers) : "Sin datos"}</p>
-        <p className="text-[10px] font-bold text-[#392e22]" data-testid="subtitle-tt-followers">Seguidores totales</p>
-        {tiktok.followers > 0 && (
+      </div>
+
+      <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <SiInstagram className="text-[#E1306C]" size={14} />
+          <p className="text-xs font-bold text-[#392e22]">Nuevos Seguidores IG</p>
+        </div>
+        <p className="text-2xl font-bold text-foreground" data-testid="text-ig-new-followers">{formatNumber(cur.instagram.new_followers)}</p>
+        <p className="text-[10px] text-muted-foreground">{MONTH_LABELS[current]}</p>
+        <div className="flex items-center gap-2 mt-1">
+          <DeltaBadge value={pctDelta(cur.instagram.new_followers, prv.instagram.new_followers)} />
+          <span className="text-[10px] text-muted-foreground">vs mes anterior</span>
+        </div>
+      </div>
+
+      <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm col-span-2 xl:col-span-1">
+        <p className="text-xs mb-1 font-bold text-[#392e22]">Gasto Meta Ads</p>
+        <p className="text-2xl font-bold text-foreground" data-testid="text-meta-spend">{formatCurrency(cur.meta_ads.spend)}</p>
+        {cur.meta_ads.spend === 0 ? (
+          <p className="text-[10px] text-muted-foreground italic">Sin pauta este mes</p>
+        ) : (
           <>
-            <p className={`text-xs font-medium ${ttGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>{ttGrowth >= 0 ? "+" : ""}{formatNumber(ttGrowth)}</p>
-            <p className="text-[10px] text-muted-foreground" data-testid="subtitle-tt-growth">Crecimiento {curMonth} vs {prevMonth}</p>
+            <p className="text-[10px] text-muted-foreground">MXN — {MONTH_LABELS[current]}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <DeltaBadge value={pctDelta(cur.meta_ads.spend, prv.meta_ads.spend)} />
+              <span className="text-[10px] text-muted-foreground">vs mes anterior</span>
+            </div>
           </>
         )}
       </div>
-      <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
-        <p className="mb-1 text-[#392e22] text-[12px] font-bold">Engagement Rate</p>
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-base font-bold text-chart-1" data-testid="text-eng-ig">{instagram.engagement_rate}%</span>
-          <span className="text-base font-bold text-chart-2" data-testid="text-eng-fb">{facebook.engagement_rate}%</span>
-          <span className="text-base font-bold text-chart-5" data-testid="text-eng-tt">{tiktok.engagement_rate}%</span>
-        </div>
-        <div className="flex items-baseline gap-1.5 mt-1">
-          {[
-            { delta: +(instagram.engagement_rate - instagram.engagement_rate_prev_month).toFixed(1), id: "delta-eng-ig" },
-            { delta: +(facebook.engagement_rate - facebook.engagement_rate_prev_month).toFixed(1), id: "delta-eng-fb" },
-            { delta: +(tiktok.engagement_rate - tiktok.engagement_rate_prev_month).toFixed(1), id: "delta-eng-tt" },
-          ].map(({ delta, id }) => (
-            <span key={id} className={`text-[10px] font-medium ${delta >= 0 ? "text-green-600" : "text-red-600"}`} data-testid={id}>
-              {delta >= 0 ? "+" : ""}{delta.toFixed(1)}%
-            </span>
-          ))}
-        </div>
-        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-engagement">vs {prevMonth}</p>
-      </div>
-      <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
-        <p className="text-xs mb-1 font-bold text-[#392e22]">Alcance Total</p>
-        <p className="text-2xl font-bold text-foreground" data-testid="text-total-reach">{formatNumber(totalReach)}</p>
-        <p className="text-xs text-muted-foreground">IG + FB + TikTok</p>
-        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-reach">Alcance orgánico {curMonth}</p>
-      </div>
-      <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
-        <p className="text-xs mb-1 font-bold text-[#392e22]">Meta Ads</p>
-        <p className="text-2xl font-bold text-foreground" data-testid="text-meta-spend">${formatNumber(meta_ads.spend)}</p>
-        <p className="text-xs text-muted-foreground">CTR: {meta_ads.ctr}%</p>
-        <p className="text-[10px] text-muted-foreground" data-testid="subtitle-meta-spend">Inversión Meta Ads {curMonth}</p>
-      </div>
     </div>
   );
 }
 
-function DefaultChartTooltip({ active, payload, label, data }: any) {
-  const chartData = data || fallbackMockData;
-  const { instagram, facebook, tiktok } = chartData;
-  const colors = useChartColors();
-  if (!active || !payload?.length) return null;
-  const engRates: Record<string, number> = {
-    instagram: instagram.engagement_rate,
-    facebook: facebook.engagement_rate,
-    tiktok: tiktok.engagement_rate,
-  };
-  return (
-    <div style={{ background: "#ffffff", color: "#000000", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }}>
-      <p style={{ fontWeight: 600, marginBottom: 4 }}>{label}</p>
-      {payload.map((entry: any) => (
-        <div key={entry.dataKey} style={{ color: entry.color, marginBottom: 2 }}>
-          <span>{entry.name}: {formatNumber(entry.value)}</span>
-          <span style={{ color: "#666666", marginLeft: 8 }}>Eng: {engRates[entry.dataKey]}%</span>
-        </div>
-      ))}
-    </div>
-  );
-}
+function PlatformTable({ apiData }: { apiData: SheetsApiData }) {
+  const months = apiData.months;
+  const current = months[months.length - 1];
+  const prev = months[months.length - 2];
+  const cur = apiData.monthly[current];
+  const prv = apiData.monthly[prev];
 
-function DefaultChart({ data }: { data: typeof fallbackMockData }) {
-  const { instagram, facebook, tiktok, period } = data;
-  const colors = useChartColors();
-  const curMonth = getMonthLabel(period);
-  const hasTiktok = tiktok.engagement_rate > 0;
+  const fbEngRate = cur.facebook.reach > 0 ? +(cur.facebook.engagement / cur.facebook.reach * 100).toFixed(2) : 0;
+  const igEngRate = cur.instagram.reach > 0 ? +((cur.instagram.likes + cur.instagram.comments + cur.instagram.saves + cur.instagram.shares) / cur.instagram.reach * 100).toFixed(2) : 0;
 
-  const engagementData: { platform: string; rate: number; fill: string }[] = [
-    { platform: "Facebook", rate: facebook.engagement_rate, fill: "#1877F2" },
-    { platform: "Instagram", rate: instagram.engagement_rate, fill: "#E1306C" },
+  const igInteractions = cur.instagram.likes + cur.instagram.comments + cur.instagram.saves + cur.instagram.shares;
+  const prevIgInteractions = prv.instagram.likes + prv.instagram.comments + prv.instagram.saves + prv.instagram.shares;
+
+  const rows = [
+    {
+      platform: "Facebook",
+      color: "#1877F2",
+      icon: <SiFacebook size={14} />,
+      reach: cur.facebook.reach,
+      interactions: cur.facebook.engagement,
+      engRate: fbEngRate,
+      newFollowers: "—",
+      vsPrev: pctDelta(cur.facebook.reach, prv.facebook.reach),
+    },
+    {
+      platform: "Instagram",
+      color: "#E1306C",
+      icon: <SiInstagram size={14} />,
+      reach: cur.instagram.reach,
+      interactions: igInteractions,
+      engRate: igEngRate,
+      newFollowers: formatNumber(cur.instagram.new_followers),
+      vsPrev: pctDelta(cur.instagram.reach, prv.instagram.reach),
+    },
+    {
+      platform: "TikTok",
+      color: "#69C9D0",
+      icon: <SiTiktok size={14} />,
+      reach: null,
+      interactions: null,
+      engRate: null,
+      newFollowers: null,
+      vsPrev: null,
+    },
   ];
-  if (hasTiktok) {
-    engagementData.push({ platform: "TikTok", rate: tiktok.engagement_rate, fill: "#69C9D0" });
-  }
 
   return (
-    <div className="bg-card rounded-xl p-5 border border-card-border shadow-sm">
-      <h3 className="text-sm mb-4 font-bold text-[#392e22]" data-testid="text-engagement-chart-title">Engagement Rate por Plataforma — {curMonth}</h3>
-      <ResponsiveContainer width="100%" height={280}>
-        <BarChart data={engagementData}>
-          <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-          <XAxis dataKey="platform" tick={{ fontSize: 12, fill: colors.mutedFg }} />
-          <YAxis tick={{ fontSize: 12, fill: colors.mutedFg }} tickFormatter={(v) => `${v}%`} />
-          <Tooltip contentStyle={{ background: "#ffffff", color: "#000000", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} cursor={false} formatter={(v: number) => `${v}%`} />
-          <Bar dataKey="rate" name="Engagement Rate" radius={[6, 6, 0, 0]}>
-            {engagementData.map((entry, index) => (
-              <Cell key={index} fill={entry.fill} />
-            ))}
-            <LabelList dataKey="rate" position="top" formatter={(v: number) => `${v}%`} style={{ fontSize: 10, fill: colors.mutedFg }} />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="bg-card rounded-xl border border-card-border shadow-sm mb-5 overflow-hidden">
+      <table className="w-full text-xs" data-testid="table-platform-summary">
+        <thead>
+          <tr className="border-b border-card-border bg-muted/30">
+            <th className="text-left px-4 py-2.5 font-semibold text-[#392e22]">Plataforma</th>
+            <th className="text-right px-3 py-2.5 font-semibold text-[#392e22]">Alcance</th>
+            <th className="text-right px-3 py-2.5 font-semibold text-[#392e22]">Interacciones</th>
+            <th className="text-right px-3 py-2.5 font-semibold text-[#392e22]">Eng. Rate</th>
+            <th className="text-right px-3 py-2.5 font-semibold text-[#392e22]">Nuevos Seg.</th>
+            <th className="text-right px-4 py-2.5 font-semibold text-[#392e22]">vs Mes Ant.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.platform} className="border-b border-card-border last:border-0">
+              <td className="px-4 py-2.5">
+                <div className="flex items-center gap-2">
+                  <span style={{ color: r.color }}>{r.icon}</span>
+                  <span className="font-semibold" style={{ color: r.color }}>{r.platform}</span>
+                </div>
+              </td>
+              <td className="text-right px-3 py-2.5 text-foreground">{r.reach !== null ? formatNumber(r.reach) : <span className="text-muted-foreground italic">Sin datos</span>}</td>
+              <td className="text-right px-3 py-2.5 text-foreground">{r.interactions !== null ? formatNumber(r.interactions) : <span className="text-muted-foreground italic">Sin datos</span>}</td>
+              <td className="text-right px-3 py-2.5 text-foreground">{r.engRate !== null ? `${r.engRate}%` : <span className="text-muted-foreground italic">Sin datos</span>}</td>
+              <td className="text-right px-3 py-2.5 text-foreground">{r.newFollowers !== null ? r.newFollowers : <span className="text-muted-foreground italic">Sin datos</span>}</td>
+              <td className="text-right px-4 py-2.5">{r.vsPrev !== null ? <DeltaBadge value={r.vsPrev} /> : <span className="text-muted-foreground italic">—</span>}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const PIE_COLORS = ["#E1306C", "#F77737", "#FCAF45", "#833AB4"];
+
+function DefaultCharts({ apiData }: { apiData: SheetsApiData }) {
+  const themeColors = useChartColors();
+  const months = apiData.months;
+  const current = months[months.length - 1];
+  const cur = apiData.monthly[current];
+
+  const reachData = months.map((ym) => ({
+    name: MONTH_LABELS[ym] || ym,
+    Facebook: apiData.monthly[ym].facebook.reach,
+    Instagram: apiData.monthly[ym].instagram.reach,
+  }));
+
+  const engRateData = months.map((ym) => {
+    const m = apiData.monthly[ym];
+    const fbRate = m.facebook.reach > 0 ? +(m.facebook.engagement / m.facebook.reach * 100).toFixed(2) : 0;
+    const igTotal = m.instagram.likes + m.instagram.comments + m.instagram.saves + m.instagram.shares;
+    const igRate = m.instagram.reach > 0 ? +(igTotal / m.instagram.reach * 100).toFixed(2) : 0;
+    return { name: MONTH_LABELS[ym] || ym, Facebook: fbRate, Instagram: igRate };
+  });
+
+  const pieData = [
+    { name: "Likes", value: cur.instagram.likes },
+    { name: "Comentarios", value: cur.instagram.comments },
+    { name: "Guardados", value: cur.instagram.saves },
+    { name: "Compartidos", value: cur.instagram.shares },
+  ];
+  const pieTotal = pieData.reduce((a, b) => a + b.value, 0);
+
+  const followersData = months.map((ym) => ({
+    name: MONTH_LABELS[ym] || ym,
+    Seguidores: apiData.monthly[ym].instagram.new_followers,
+  }));
+
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div className="bg-card rounded-xl p-5 border border-card-border shadow-sm">
+        <h3 className="text-sm mb-4 font-bold text-[#392e22]" data-testid="text-reach-chart-title">Alcance Mensual por Plataforma</h3>
+        <ResponsiveContainer width="100%" height={260}>
+          <BarChart data={reachData}>
+            <CartesianGrid strokeDasharray="3 3" stroke={themeColors.border} />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
+            <YAxis tick={{ fontSize: 12, fill: themeColors.mutedFg }} tickFormatter={(v) => formatNumber(v)} />
+            <Tooltip contentStyle={{ background: "#fff", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} formatter={(v: number) => formatNumber(v)} cursor={false} />
+            <Legend wrapperStyle={{ fontSize: "12px" }} />
+            <Bar dataKey="Facebook" fill="#1877F2" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Instagram" fill="#E1306C" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="bg-card rounded-xl p-5 border border-card-border shadow-sm">
+        <h3 className="text-sm mb-4 font-bold text-[#392e22]" data-testid="text-engagement-chart-title">Evolución de Engagement Rate</h3>
+        <ResponsiveContainer width="100%" height={260}>
+          <LineChart data={engRateData}>
+            <CartesianGrid strokeDasharray="3 3" stroke={themeColors.border} />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
+            <YAxis tick={{ fontSize: 12, fill: themeColors.mutedFg }} tickFormatter={(v) => `${v}%`} />
+            <Tooltip contentStyle={{ background: "#fff", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} formatter={(v: number) => `${v}%`} cursor={false} />
+            <Legend wrapperStyle={{ fontSize: "12px" }} />
+            <Line type="monotone" dataKey="Facebook" stroke="#1877F2" strokeWidth={2} dot={{ r: 4 }} />
+            <Line type="monotone" dataKey="Instagram" stroke="#E1306C" strokeWidth={2} dot={{ r: 4 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="bg-card rounded-xl p-5 border border-card-border shadow-sm">
+        <h3 className="text-sm mb-4 font-bold text-[#392e22]" data-testid="text-pie-chart-title">Tipo de Interacciones — Instagram {MONTH_LABELS[current]} 2026</h3>
+        <ResponsiveContainer width="100%" height={260}>
+          <PieChart>
+            <Pie
+              data={pieData}
+              cx="50%"
+              cy="50%"
+              outerRadius={90}
+              dataKey="value"
+              label={({ name, value }) => `${name} ${pieTotal > 0 ? ((value / pieTotal) * 100).toFixed(0) : 0}%`}
+              labelLine={false}
+            >
+              {pieData.map((_, idx) => (
+                <Cell key={idx} fill={PIE_COLORS[idx]} />
+              ))}
+            </Pie>
+            <Tooltip contentStyle={{ background: "#fff", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} formatter={(v: number) => formatNumber(v)} />
+            <Legend wrapperStyle={{ fontSize: "12px" }} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="bg-card rounded-xl p-5 border border-card-border shadow-sm">
+        <h3 className="text-sm mb-4 font-bold text-[#392e22]" data-testid="text-followers-chart-title">Nuevos Seguidores Mensuales — Instagram</h3>
+        <ResponsiveContainer width="100%" height={260}>
+          <BarChart data={followersData}>
+            <CartesianGrid strokeDasharray="3 3" stroke={themeColors.border} />
+            <XAxis dataKey="name" tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
+            <YAxis tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
+            <Tooltip contentStyle={{ background: "#fff", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} cursor={false} />
+            <Bar dataKey="Seguidores" fill="#E1306C" radius={[4, 4, 0, 0]}>
+              <LabelList dataKey="Seguidores" position="top" formatter={(v: number) => formatNumber(v)} style={{ fontSize: 10, fill: themeColors.mutedFg }} />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
@@ -351,7 +489,35 @@ function DefaultChart({ data }: { data: typeof fallbackMockData }) {
 function DynamicChart({ chartData }: { chartData: ChartData }) {
   const { type, title, data, dataKeys, colors: chartColors } = chartData;
   const themeColors = useChartColors();
-  const defaultColors = [themeColors.chart3, themeColors.chart1, themeColors.chart2, themeColors.chart4, themeColors.chart5];
+  const defaultColors = ["#E1306C", "#1877F2", "#69C9D0", "#ED7C22", "#833AB4"];
+
+  if (type === "pie") {
+    const total = data.reduce((a, d) => a + (Number(d[dataKeys[0]] || d.value) || 0), 0);
+    return (
+      <div className="bg-card rounded-xl p-5 border border-card-border shadow-sm">
+        <h3 className="text-sm font-semibold text-foreground mb-4">{title}</h3>
+        <ResponsiveContainer width="100%" height={280}>
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              outerRadius={90}
+              dataKey={dataKeys[0] || "value"}
+              label={({ name, value }) => `${name} ${total > 0 ? ((Number(value) / total) * 100).toFixed(0) : 0}%`}
+              labelLine={false}
+            >
+              {data.map((_, idx) => (
+                <Cell key={idx} fill={chartColors[idx] || defaultColors[idx % defaultColors.length]} />
+              ))}
+            </Pie>
+            <Tooltip contentStyle={{ background: "#fff", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} formatter={(v: number) => formatNumber(v)} />
+            <Legend wrapperStyle={{ fontSize: "12px" }} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card rounded-xl p-5 border border-card-border shadow-sm">
@@ -362,10 +528,10 @@ function DynamicChart({ chartData }: { chartData: ChartData }) {
             <CartesianGrid strokeDasharray="3 3" stroke={themeColors.border} />
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
             <YAxis tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
-            <Tooltip contentStyle={{ background: "#ffffff", color: "#000000", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} cursor={false} />
+            <Tooltip contentStyle={{ background: "#fff", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} cursor={false} />
             <Legend wrapperStyle={{ fontSize: "12px" }} />
             {dataKeys.map((key, i) => (
-              <Line key={key} type="monotone" dataKey={key} stroke={chartColors[i] || defaultColors[i] || themeColors.primary} strokeWidth={2} dot={{ r: 4 }} />
+              <Line key={key} type="monotone" dataKey={key} stroke={chartColors[i] || defaultColors[i % defaultColors.length]} strokeWidth={2} dot={{ r: 4 }} />
             ))}
           </LineChart>
         ) : type === "area" ? (
@@ -373,10 +539,10 @@ function DynamicChart({ chartData }: { chartData: ChartData }) {
             <CartesianGrid strokeDasharray="3 3" stroke={themeColors.border} />
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
             <YAxis tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
-            <Tooltip contentStyle={{ background: "#ffffff", color: "#000000", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} cursor={false} />
+            <Tooltip contentStyle={{ background: "#fff", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} cursor={false} />
             <Legend wrapperStyle={{ fontSize: "12px" }} />
             {dataKeys.map((key, i) => (
-              <Area key={key} type="monotone" dataKey={key} fill={chartColors[i] || defaultColors[i] || themeColors.primary} stroke={chartColors[i] || defaultColors[i] || themeColors.primary} fillOpacity={0.2} />
+              <Area key={key} type="monotone" dataKey={key} fill={chartColors[i] || defaultColors[i % defaultColors.length]} stroke={chartColors[i] || defaultColors[i % defaultColors.length]} fillOpacity={0.2} />
             ))}
           </AreaChart>
         ) : (
@@ -384,10 +550,10 @@ function DynamicChart({ chartData }: { chartData: ChartData }) {
             <CartesianGrid strokeDasharray="3 3" stroke={themeColors.border} />
             <XAxis dataKey="name" tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
             <YAxis tick={{ fontSize: 12, fill: themeColors.mutedFg }} />
-            <Tooltip contentStyle={{ background: "#ffffff", color: "#000000", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} formatter={(value: number) => formatNumber(value)} cursor={false} />
+            <Tooltip contentStyle={{ background: "#fff", borderRadius: "8px", border: "1px solid #e0e0e0", padding: "12px", fontSize: "12px" }} formatter={(value: number) => formatNumber(value)} cursor={false} />
             <Legend wrapperStyle={{ fontSize: "12px" }} />
             {dataKeys.map((key, i) => (
-              <Bar key={key} dataKey={key} fill={chartColors[i] || defaultColors[i] || themeColors.primary} radius={[6, 6, 0, 0]}>
+              <Bar key={key} dataKey={key} fill={chartColors[i] || defaultColors[i % defaultColors.length]} radius={[6, 6, 0, 0]}>
                 <LabelList dataKey={key} position="top" formatter={(v: number) => formatNumber(v)} style={{ fontSize: 10, fill: themeColors.mutedFg }} />
               </Bar>
             ))}
@@ -398,50 +564,32 @@ function DynamicChart({ chartData }: { chartData: ChartData }) {
   );
 }
 
-function ymToMonthLabel(ym: string): string {
-  const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const [y, m] = ym.split("-");
-  return `${MONTH_NAMES[parseInt(m, 10) - 1]} ${y}`;
-}
-
-function transformSheetsData(api: any): typeof fallbackMockData {
-  const currentLabel = ymToMonthLabel(api.period.current);
-  return {
-    plaza: api.plaza,
-    period: currentLabel,
-    instagram: {
-      followers: api.instagram.new_followers,
-      followers_prev_month: api.instagram.new_followers_prev,
-      followers_2months_ago: 0,
-      posts: 0,
-      reach: api.instagram.reach,
-      engagement_rate: api.instagram.reach > 0 ? +((api.instagram.engagement / api.instagram.reach) * 100).toFixed(1) : 0,
-      engagement_rate_prev_month: 0,
+const FALLBACK_API_DATA: SheetsApiData = {
+  plaza: "Patio Santa Fe",
+  months: ["2025-11", "2025-12", "2026-01", "2026-02"],
+  monthly: {
+    "2025-11": {
+      facebook: { reach: 0, engagement: 0, followers_total: 0 },
+      instagram: { reach: 0, engagement: 0, new_followers: 0, likes: 0, comments: 0, saves: 0, shares: 0 },
+      meta_ads: { spend: 0, impressions: 0, clicks: 0, ctr: 0 },
     },
-    facebook: {
-      followers: api.facebook.followers_total,
-      followers_prev_month: api.facebook.followers_prev,
-      followers_2months_ago: api.facebook.followers_2m,
-      posts: 0,
-      reach: api.facebook.reach,
-      engagement_rate: api.facebook.reach > 0 ? +((api.facebook.engagement / api.facebook.reach) * 100).toFixed(1) : 0,
-      engagement_rate_prev_month: 0,
+    "2025-12": {
+      facebook: { reach: 0, engagement: 0, followers_total: 0 },
+      instagram: { reach: 0, engagement: 0, new_followers: 0, likes: 0, comments: 0, saves: 0, shares: 0 },
+      meta_ads: { spend: 0, impressions: 0, clicks: 0, ctr: 0 },
     },
-    tiktok: {
-      followers: 0, followers_prev_month: 0, followers_2months_ago: 0,
-      posts: 0, views: 0, engagement_rate: 0, engagement_rate_prev_month: 0,
+    "2026-01": {
+      facebook: { reach: 0, engagement: 0, followers_total: 0 },
+      instagram: { reach: 0, engagement: 0, new_followers: 0, likes: 0, comments: 0, saves: 0, shares: 0 },
+      meta_ads: { spend: 0, impressions: 0, clicks: 0, ctr: 0 },
     },
-    meta_ads: {
-      spend: api.meta_ads.spend,
-      currency: "MXN",
-      impressions: api.meta_ads.impressions,
-      clicks: api.meta_ads.clicks,
-      ctr: +api.meta_ads.ctr.toFixed(2),
-      cpr: api.meta_ads.clicks > 0 ? +(api.meta_ads.spend / api.meta_ads.clicks).toFixed(2) : 0,
-      results: api.meta_ads.clicks,
+    "2026-02": {
+      facebook: { reach: 0, engagement: 0, followers_total: 0 },
+      instagram: { reach: 0, engagement: 0, new_followers: 0, likes: 0, comments: 0, saves: 0, shares: 0 },
+      meta_ads: { spend: 0, impressions: 0, clicks: 0, ctr: 0 },
     },
-  };
-}
+  },
+};
 
 export default function Home() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -451,8 +599,9 @@ export default function Home() {
   const [canvasOpen, setCanvasOpen] = useState(true);
   const [questionChips, setQuestionChips] = useState<string[]>([]);
   const [chipsLoading, setChipsLoading] = useState(true);
-  const [dashboardData, setDashboardData] = useState(fallbackMockData);
-  const [dataContext, setDataContext] = useState(fallbackMockDataContext);
+  const [apiData, setApiData] = useState<SheetsApiData>(FALLBACK_API_DATA);
+  const [dataContext, setDataContext] = useState(JSON.stringify(FALLBACK_API_DATA, null, 2));
+  const [dataLoaded, setDataLoaded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -461,18 +610,18 @@ export default function Home() {
       try {
         const res = await fetch("/api/sheets-data");
         if (res.ok) {
-          const apiData = await res.json();
-          const transformed = transformSheetsData(apiData);
-          setDashboardData(transformed);
-          setDataContext(JSON.stringify(apiData, null, 2));
+          const data = await res.json();
+          setApiData(data);
+          setDataContext(JSON.stringify(data, null, 2));
         }
-      } catch {
-      }
+      } catch {}
+      setDataLoaded(true);
     }
     fetchSheetsData();
   }, []);
 
   useEffect(() => {
+    if (!dataLoaded) return;
     async function fetchChips() {
       try {
         const res = await apiRequest("POST", "/api/chat", {
@@ -480,26 +629,26 @@ export default function Home() {
             {
               role: "user",
               content:
-                "Based on this social media data, generate 6 relevant opening questions a marketing manager would want to ask. Return ONLY a JSON array of 6 questions in Spanish, nothing else. Example: [\"question 1\", \"question 2\", ...]",
+                "Based on this social media data, generate 6 relevant opening questions a marketing manager would want to ask. Return ONLY a JSON array of 6 questions in Spanish, nothing else. Example: [\"question 1\", \"question 2\", ...]. Do NOT include any CHART_DATA or SUGGESTED block.",
             },
           ],
           context: dataContext,
         });
         const data = await res.json();
-        const stripped = data.response.replace(/\n?SUGGESTED:\s*\[[\s\S]*?\]\s*$/, "").trim();
+        const stripped = data.response.replace(/\n?SUGGESTED:\s*\[[\s\S]*?\]\s*$/, "").replace(/CHART_DATA:\s*\{[^\n]*\}/g, "").trim();
         const raw = stripped.replace(/```json\s*/g, "").replace(/```/g, "").trim();
         const jsonMatch = raw.match(/\[[\s\S]*\]/);
         const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setQuestionChips(parsed);
         }
-      } catch {
-      } finally {
+      } catch {}
+      finally {
         setChipsLoading(false);
       }
     }
     fetchChips();
-  }, [dataContext]);
+  }, [dataLoaded, dataContext]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -562,6 +711,8 @@ export default function Home() {
   function handleExportPdf() {
     window.print();
   }
+
+  const currentMonthLabel = MONTH_LABELS[apiData.months[apiData.months.length - 1]] || "";
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -702,8 +853,8 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-sm font-medium text-foreground">{dashboardData.plaza}</span>
-                  <span className="text-xs text-muted-foreground">{(() => { const [m, y] = dashboardData.period.trim().split(/\s+/); return `${SPANISH_MONTHS_FULL[m.toLowerCase()] ?? m} ${y ?? ""}`.trim(); })()}</span>
+                  <span className="text-sm font-medium text-foreground">{apiData.plaza}</span>
+                  <span className="text-xs text-muted-foreground">{currentMonthLabel} 2026</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -725,8 +876,9 @@ export default function Home() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-5">
-              <KpiCards data={dashboardData} />
-              {activeChart ? <DynamicChart chartData={activeChart} /> : <DefaultChart data={dashboardData} />}
+              <KpiCards apiData={apiData} />
+              <PlatformTable apiData={apiData} />
+              {activeChart ? <DynamicChart chartData={activeChart} /> : <DefaultCharts apiData={apiData} />}
             </div>
           </div>
         )}
