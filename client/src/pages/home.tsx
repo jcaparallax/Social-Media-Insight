@@ -276,7 +276,7 @@ function KpiCards() {
         <p className="text-[10px] text-muted-foreground" data-testid="subtitle-reach">Alcance orgánico {curMonth}</p>
       </div>
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
-        <p className="text-xs font-medium mb-1 text-muted-foreground">Meta Ads</p>
+        <p className="text-xs mb-1 font-bold text-[#392e22]">Meta Ads</p>
         <p className="text-2xl font-bold text-foreground" data-testid="text-meta-spend">${formatNumber(meta_ads.spend)}</p>
         <p className="text-xs text-muted-foreground">CTR: {meta_ads.ctr}%</p>
         <p className="text-[10px] text-muted-foreground" data-testid="subtitle-meta-spend">Inversión Meta Ads {curMonth}</p>
