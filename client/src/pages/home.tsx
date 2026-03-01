@@ -207,7 +207,7 @@ function KpiCards() {
   const igGrowth = instagram.followers - instagram.followers_prev_month;
   const fbGrowth = facebook.followers - facebook.followers_prev_month;
   const ttGrowth = tiktok.followers - tiktok.followers_prev_month;
-  const totalReach = instagram.reach + facebook.reach;
+  const totalReach = instagram.reach + facebook.reach + tiktok.views;
   const curMonth = getMonthLabel(period);
   const prevMonth = getPrevMonthLabel(period);
 
@@ -270,7 +270,7 @@ function KpiCards() {
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
         <p className="text-xs font-medium mb-1 text-muted-foreground">Alcance Total</p>
         <p className="text-2xl font-bold text-foreground" data-testid="text-total-reach">{formatNumber(totalReach)}</p>
-        <p className="text-xs text-muted-foreground">IG + FB</p>
+        <p className="text-xs text-muted-foreground">IG + FB + TikTok</p>
         <p className="text-[10px] text-muted-foreground" data-testid="subtitle-reach">Alcance orgánico {curMonth}</p>
       </div>
 
@@ -632,7 +632,7 @@ export default function Home() {
                 <div className="flex items-center gap-2">
                   <RefreshCw className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="text-sm font-medium text-foreground">{mockData.plaza}</span>
-                  <span className="text-xs text-muted-foreground">{mockData.period}</span>
+                  <span className="text-xs text-muted-foreground">{getMonthLabel(mockData.period)}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
