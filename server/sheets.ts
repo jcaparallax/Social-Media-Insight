@@ -214,12 +214,9 @@ export async function fetchSheetsData(
       return acct === plaza.fbAccount || acct === plaza.igAccount;
     });
 
-    // Filter posts to the most recent month and pick top 5 by engagements
-    const postsByMonth = plazaPostRows.filter((r) => {
-      const dateStr = r["Report: Date"] || r["Row Updated At"] || "";
-      return getYearMonth(dateStr) === mostRecentMonth;
-    });
-    const sortedPosts = [...postsByMonth].sort(
+    // No hay fecha de publicación confiable en el sheet — usar todos los posts de la plaza
+    // ordenados por engagements. Coupler ya filtra el período relevante en la sincronización.
+    const sortedPosts = [...plazaPostRows].sort(
       (a, b) => parseNum(b["Performance: Engagements"]) - parseNum(a["Performance: Engagements"]),
     );
     const topPosts: TopPost[] = sortedPosts.slice(0, 5).map((r) => ({
