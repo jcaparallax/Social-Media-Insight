@@ -13,7 +13,7 @@ const SHEET_NAMES = [
 function computeTargetMonths(): string[] {
   const now = new Date();
   const months: string[] = [];
-  for (let i = 4; i >= 1; i--) {
+  for (let i = 3; i >= 1; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, "0");
