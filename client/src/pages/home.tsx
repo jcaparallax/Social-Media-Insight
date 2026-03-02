@@ -897,6 +897,8 @@ export default function Home() {
   const [dataLoaded, setDataLoaded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const canvasPanelRef = useRef<HTMLDivElement>(null);
+  const [showScrollHint, setShowScrollHint] = useState(true);
 
   const aggregatedData = useMemo(
     () => aggregatePlazaData(sheetsResponse, selectedPlazaIds),
@@ -981,6 +983,24 @@ export default function Home() {
       textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + "px";
     }
   }, [input]);
+
+  useEffect(() => {
+    const el = canvasPanelRef.current;
+    if (!el) return;
+    function checkScroll() {
+      if (!el) return;
+      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
+      setShowScrollHint(!atBottom);
+    }
+    checkScroll();
+    el.addEventListener("scroll", checkScroll);
+    const ro = new ResizeObserver(checkScroll);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", checkScroll);
+      ro.disconnect();
+    };
+  }, [canvasOpen, aggregatedData]);
 
   async function sendMessage(text: string) {
     if (!text.trim() || isLoading) return;
@@ -1219,10 +1239,20 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5">
-              <KpiCards data={aggregatedData} />
-              <PlatformTable data={aggregatedData} />
-              {activeChart ? <DynamicChart chartData={activeChart} /> : <DefaultCharts data={aggregatedData} />}
+            <div className="flex-1 relative overflow-hidden">
+              <div className="h-full overflow-y-auto p-5" ref={canvasPanelRef}>
+                <KpiCards data={aggregatedData} />
+                <PlatformTable data={aggregatedData} />
+                {activeChart ? <DynamicChart chartData={activeChart} /> : <DefaultCharts data={aggregatedData} />}
+              </div>
+              {showScrollHint && (
+                <div className="absolute bottom-0 left-0 right-0 pointer-events-none" data-testid="scroll-hint">
+                  <div className="h-20 bg-gradient-to-b from-transparent to-accent" />
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2">
+                    <ChevronDown className="w-5 h-5 text-black opacity-70 animate-bounce" />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
