@@ -31,6 +31,7 @@ A social media analytics chat app for marketing agency Parallax, serving client 
 - Sheets read: "Facebook Page Insights", "Instagram Page Insights", "Instagram Followers 30 días", "Meta Ads"
 - Filtered per-plaza using config values (FB account name, IG account name, Ads campaign keyword)
 - Target months: dynamically computed as last 4 complete calendar months
+- Facebook data includes both `reach` (total = organic + paid + viral) and `reach_organic` (organic only, from "Performance: Posts organic reach")
 - Aggregated by month per plaza
 - Credentials: Google Sheets Replit Connector (OAuth) — replaces old service account approach
 
@@ -47,8 +48,8 @@ A social media analytics chat app for marketing agency Parallax, serving client 
 - Changing selection re-fetches data and updates dashboard
 
 ### KPI Cards (6 cards)
-1. **Alcance Total** — FB + IG combined reach, deltas vs previous month and 3 months ago
-2. **Eng. Rate Facebook** — fb.engagement / fb.reach * 100, delta vs previous month (pp)
+1. **Alcance Orgánico FB** — Facebook organic reach as primary value, total reach (with paid) shown as secondary muted line, deltas vs previous month and 3 months ago
+2. **Eng. Rate Facebook** — fb.engagement / fb.reach_organic * 100 (falls back to fb.reach if organic is 0), delta vs previous month (pp)
 3. **Eng. Rate Instagram** — (ig.likes + ig.comments + ig.saves + ig.shares) / ig.reach * 100, delta vs previous month (pp)
 4. **Interacciones Totales** — sum of likes + comments + saves + shares (IG + FB), delta vs previous
 5. **Nuevos Seguidores IG** — new followers current month; shows absolute diff when prev < 10, percentage when prev >= 10
@@ -56,11 +57,11 @@ A social media analytics chat app for marketing agency Parallax, serving client 
 
 ### Platform Summary Table
 - Columns: Plataforma, Alcance, Interacciones, Engagement Rate, Nuevos Seguidores, vs Mes Anterior
-- Rows: Facebook (#1877F2), Instagram (#E1306C), TikTok (#69C9D0 — shows "Sin datos")
+- Rows: Facebook (#1877F2 — shows reach_organic with "(orgánico)" label), Instagram (#E1306C), TikTok (#69C9D0 — shows "Sin datos")
 
 ### Charts (4 shown by default)
-1. Two stacked bar charts — Alcance Mensual por Plataforma (separate FB and IG charts with independent Y axes, 160px each)
-2. Line chart — Evolución de Engagement Rate (FB + IG lines)
+1. Two bar charts — Alcance Mensual por Plataforma (FB uses reach_organic with "Alcance orgánico (excluye paid)" subtitle; IG uses total reach; independent Y axes, 160px each)
+2. Line chart — Evolución de Engagement Rate (FB uses reach_organic denominator with fallback to reach; IG uses total reach)
 3. Horizontal bar chart — Tipo de Interacciones Instagram (Likes, Comentarios, Guardados, Compartidos with absolute values)
 4. Bar chart — Nuevos Seguidores Mensuales Instagram (missing months shown as gray N/D bars)
 

@@ -47,7 +47,7 @@ function getMonthYear(ym: string): string {
 }
 
 interface MonthlyData {
-  facebook: { reach: number; engagement: number; followers_total: number };
+  facebook: { reach: number; reach_organic: number; engagement: number; followers_total: number };
   instagram: { reach: number; engagement: number; new_followers: number; likes: number; comments: number; saves: number; shares: number; has_followers_data: boolean };
   meta_ads: { spend: number; impressions: number; clicks: number; ctr: number };
 }
@@ -97,7 +97,7 @@ function aggregatePlazaData(response: SheetsApiResponse, selectedPlazaIds: strin
   const monthly: Record<string, MonthlyData> = {};
   for (const ym of months) {
     const agg: MonthlyData = {
-      facebook: { reach: 0, engagement: 0, followers_total: 0 },
+      facebook: { reach: 0, reach_organic: 0, engagement: 0, followers_total: 0 },
       instagram: { reach: 0, engagement: 0, new_followers: 0, likes: 0, comments: 0, saves: 0, shares: 0, has_followers_data: false },
       meta_ads: { spend: 0, impressions: 0, clicks: 0, ctr: 0 },
     };
@@ -107,6 +107,7 @@ function aggregatePlazaData(response: SheetsApiResponse, selectedPlazaIds: strin
       const m = response.plazas[key].monthly[ym];
       if (!m) continue;
       agg.facebook.reach += m.facebook.reach;
+      agg.facebook.reach_organic += m.facebook.reach_organic || 0;
       agg.facebook.engagement += m.facebook.engagement;
       agg.facebook.followers_total += m.facebook.followers_total;
       agg.instagram.reach += m.instagram.reach;
@@ -393,15 +394,17 @@ function KpiCards({ data }: { data: AggregatedData }) {
   const prv = data.monthly[prev];
   const old = data.monthly[threeMonthsAgo];
 
-  const curReach = cur.facebook.reach + cur.instagram.reach;
-  const prevReach = prv.facebook.reach + prv.instagram.reach;
-  const oldReach = old.facebook.reach + old.instagram.reach;
+  const curFbReachOrganic = cur.facebook.reach_organic || 0;
+  const prevFbReachOrganic = prv.facebook.reach_organic || 0;
+  const oldFbReachOrganic = old.facebook.reach_organic || 0;
 
   const curEngagements = cur.instagram.likes + cur.instagram.comments + cur.instagram.saves + cur.instagram.shares + cur.facebook.engagement;
   const prevEngagements = prv.instagram.likes + prv.instagram.comments + prv.instagram.saves + prv.instagram.shares + prv.facebook.engagement;
 
-  const curFbEngRate = cur.facebook.reach > 0 ? +(cur.facebook.engagement / cur.facebook.reach * 100).toFixed(2) : 0;
-  const prevFbEngRate = prv.facebook.reach > 0 ? +(prv.facebook.engagement / prv.facebook.reach * 100).toFixed(2) : 0;
+  const curFbEngDenom = cur.facebook.reach_organic > 0 ? cur.facebook.reach_organic : cur.facebook.reach;
+  const prevFbEngDenom = prv.facebook.reach_organic > 0 ? prv.facebook.reach_organic : prv.facebook.reach;
+  const curFbEngRate = curFbEngDenom > 0 ? +(cur.facebook.engagement / curFbEngDenom * 100).toFixed(2) : 0;
+  const prevFbEngRate = prevFbEngDenom > 0 ? +(prv.facebook.engagement / prevFbEngDenom * 100).toFixed(2) : 0;
 
   const curIgEngTotal = cur.instagram.likes + cur.instagram.comments + cur.instagram.saves + cur.instagram.shares;
   const prevIgEngTotal = prv.instagram.likes + prv.instagram.comments + prv.instagram.saves + prv.instagram.shares;
@@ -416,15 +419,19 @@ function KpiCards({ data }: { data: AggregatedData }) {
   return (
     <div className="grid grid-cols-2 xl:grid-cols-3 gap-3 mb-5">
       <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
-        <p className="text-xs mb-1 font-bold text-[#392e22]">Alcance Total</p>
-        <p className="text-2xl font-bold text-foreground" data-testid="text-total-reach">{formatNumber(curReach)}</p>
-        <p className="text-[10px] text-muted-foreground">FB + IG — {currentLabel}</p>
+        <div className="flex items-center gap-2 mb-1">
+          <SiFacebook className="text-[#1877F2]" size={14} />
+          <p className="text-xs font-bold text-[#392e22]">Alcance Orgánico FB</p>
+        </div>
+        <p className="text-2xl font-bold text-foreground" data-testid="text-total-reach">{formatNumber(curFbReachOrganic)}</p>
+        <p className="text-[10px] text-muted-foreground">{currentLabel}</p>
+        <p className="text-[10px] text-muted-foreground">Total (con paid): {formatNumber(cur.facebook.reach)}</p>
         <div className="flex items-center gap-2 mt-1">
-          <DeltaBadge value={pctDelta(curReach, prevReach)} />
+          <DeltaBadge value={pctDelta(curFbReachOrganic, prevFbReachOrganic)} />
           <span className="text-[10px] text-muted-foreground">vs mes anterior</span>
         </div>
         <div className="flex items-center gap-2">
-          <DeltaBadge value={pctDelta(curReach, oldReach)} />
+          <DeltaBadge value={pctDelta(curFbReachOrganic, oldFbReachOrganic)} />
           <span className="text-[10px] text-muted-foreground">vs 3 meses</span>
         </div>
       </div>
@@ -512,7 +519,10 @@ function PlatformTable({ data }: { data: AggregatedData }) {
   const cur = data.monthly[current];
   const prv = data.monthly[prev];
 
-  const fbEngRate = cur.facebook.reach > 0 ? +(cur.facebook.engagement / cur.facebook.reach * 100).toFixed(2) : 0;
+  const curFbReachOrg = cur.facebook.reach_organic || 0;
+  const prvFbReachOrg = prv.facebook.reach_organic || 0;
+  const fbEngDenom = curFbReachOrg > 0 ? curFbReachOrg : cur.facebook.reach;
+  const fbEngRate = fbEngDenom > 0 ? +(cur.facebook.engagement / fbEngDenom * 100).toFixed(2) : 0;
   const igEngRate = cur.instagram.reach > 0 ? +((cur.instagram.likes + cur.instagram.comments + cur.instagram.saves + cur.instagram.shares) / cur.instagram.reach * 100).toFixed(2) : 0;
 
   const rows = [
@@ -520,11 +530,12 @@ function PlatformTable({ data }: { data: AggregatedData }) {
       platform: "Facebook",
       color: "#1877F2",
       icon: <SiFacebook size={14} />,
-      reach: cur.facebook.reach,
+      reach: curFbReachOrg,
+      reachLabel: "(orgánico)",
       interactions: cur.facebook.engagement,
       engRate: fbEngRate,
       newFollowers: "—",
-      vsPrev: pctDelta(cur.facebook.reach, prv.facebook.reach),
+      vsPrev: pctDelta(curFbReachOrg, prvFbReachOrg),
     },
     {
       platform: "Instagram",
@@ -570,7 +581,7 @@ function PlatformTable({ data }: { data: AggregatedData }) {
                   <span className="font-semibold" style={{ color: r.color }}>{r.platform}</span>
                 </div>
               </td>
-              <td className="text-right px-3 py-2.5 text-foreground">{r.reach !== null ? formatNumber(r.reach) : <span className="text-muted-foreground italic">Sin datos</span>}</td>
+              <td className="text-right px-3 py-2.5 text-foreground">{r.reach !== null ? <span>{formatNumber(r.reach)}{"reachLabel" in r && r.reachLabel ? <span className="text-[10px] text-muted-foreground ml-1">{r.reachLabel}</span> : null}</span> : <span className="text-muted-foreground italic">Sin datos</span>}</td>
               <td className="text-right px-3 py-2.5 text-foreground">{r.interactions !== null ? formatNumber(r.interactions) : <span className="text-muted-foreground italic">Sin datos</span>}</td>
               <td className="text-right px-3 py-2.5 text-foreground">{r.engRate !== null ? `${r.engRate}%` : <span className="text-muted-foreground italic">Sin datos</span>}</td>
               <td className="text-right px-3 py-2.5 text-foreground">{r.newFollowers !== null ? r.newFollowers : <span className="text-muted-foreground italic">Sin datos</span>}</td>
@@ -595,7 +606,7 @@ function DefaultCharts({ data }: { data: AggregatedData }) {
 
   const fbReachData = months.map((ym) => ({
     name: getMonthLabel(ym),
-    Facebook: data.monthly[ym].facebook.reach,
+    Facebook: data.monthly[ym].facebook.reach_organic || 0,
   }));
 
   const igReachData = months.map((ym) => ({
@@ -605,7 +616,9 @@ function DefaultCharts({ data }: { data: AggregatedData }) {
 
   const engRateData = months.map((ym) => {
     const m = data.monthly[ym];
-    const fbRate = m.facebook.reach > 0 ? +(m.facebook.engagement / m.facebook.reach * 100).toFixed(2) : 0;
+    const fbOrg = m.facebook.reach_organic || 0;
+    const fbDenom = fbOrg > 0 ? fbOrg : m.facebook.reach;
+    const fbRate = fbDenom > 0 ? +(m.facebook.engagement / fbDenom * 100).toFixed(2) : 0;
     const igTotal = m.instagram.likes + m.instagram.comments + m.instagram.saves + m.instagram.shares;
     const igRate = m.instagram.reach > 0 ? +(igTotal / m.instagram.reach * 100).toFixed(2) : 0;
     return { name: getMonthLabel(ym), Facebook: fbRate, Instagram: igRate };
@@ -644,7 +657,8 @@ function DefaultCharts({ data }: { data: AggregatedData }) {
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
       <div className="bg-card rounded-xl p-5 border border-card-border shadow-sm">
         <h3 className="text-sm mb-4 font-bold text-[#392e22]" data-testid="text-reach-chart-title">Alcance Mensual por Plataforma</h3>
-        <p className="text-xs font-semibold text-[#1877F2] mb-1">Alcance Facebook</p>
+        <p className="text-xs font-semibold text-[#1877F2] mb-0.5">Alcance Facebook</p>
+        <p className="text-[10px] text-muted-foreground mb-1">Alcance orgánico (excluye paid)</p>
         <ResponsiveContainer width="100%" height={160}>
           <BarChart data={fbReachData}>
             <CartesianGrid strokeDasharray="3 3" stroke={themeColors.border} />

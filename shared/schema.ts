@@ -18,6 +18,7 @@ export type ChatRequest = z.infer<typeof chatRequestSchema>;
 export interface MonthlyData {
   facebook: {
     reach: number;
+    reach_organic: number;
     engagement: number;
     followers_total: number;
   };

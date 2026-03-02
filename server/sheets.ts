@@ -133,6 +133,7 @@ function buildMonthlyData(
     monthly[ym] = {
       facebook: {
         reach: sumField(fbMonth, "Performance: Reach"),
+        reach_organic: sumField(fbMonth, "Performance: Posts organic reach"),
         engagement: sumField(fbMonth, "Engagement: Posts engagements"),
         followers_total:
           latestFbFollowers(fbMonth) || latestFbFollowers(fbFiltered),
