@@ -1,6 +1,10 @@
 import { getUncachableGoogleSheetClient } from "./googleSheetsClient";
 import { PLAZAS, type PlazaConfig } from "./config/plazas";
-import type { MonthlyData, PlazaData, SheetsDataResponse } from "@shared/schema";
+import type {
+  MonthlyData,
+  PlazaData,
+  SheetsDataResponse,
+} from "@shared/schema";
 
 const SPREADSHEET_ID = "15PdHhPO-ecHavV27SLfkh6Nx-fXGM06As0-5O_i8vvs";
 const SHEET_NAMES = [
@@ -22,9 +26,7 @@ function computeTargetMonths(): string[] {
   return months;
 }
 
-async function readSheet(
-  sheetName: string,
-): Promise<Record<string, string>[]> {
+async function readSheet(sheetName: string): Promise<Record<string, string>[]> {
   const sheets = await getUncachableGoogleSheetClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
@@ -109,12 +111,8 @@ function buildMonthlyData(
     if (rows.length === 0) return 0;
     const sorted = [...rows].sort(
       (a, b) =>
-        new Date(
-          b["Report: Date"] || b["Report: Start date"] || "",
-        ).getTime() -
-        new Date(
-          a["Report: Date"] || a["Report: Start date"] || "",
-        ).getTime(),
+        new Date(b["Report: Date"] || b["Report: Start date"] || "").getTime() -
+        new Date(a["Report: Date"] || a["Report: Start date"] || "").getTime(),
     );
     return parseNum(sorted[0]["Engagement: Lifetime followers"]);
   };
@@ -141,10 +139,7 @@ function buildMonthlyData(
       instagram: {
         reach: sumField(igMonth, "Performance: Reach"),
         engagement: sumField(igMonth, "Performance: Engagements"),
-        new_followers: sumField(
-          igFollowersMonth,
-          "Engagement: New followers",
-        ),
+        new_followers: sumField(igFollowersMonth, "Engagement: New followers"),
         likes: sumField(igMonth, "Engagement: Likes"),
         comments: sumField(igMonth, "Engagement: Comments"),
         saves: sumField(igMonth, "Engagement: Saves"),
@@ -152,11 +147,10 @@ function buildMonthlyData(
         has_followers_data: igFollowersMonth.length > 0,
       },
       meta_ads: {
-        spend: sumField(adsMonth, "Performance: Amount spent"),
+        spend: sumField(adsMonth, "Cost: Amount spend"),
         impressions: adsImpressionSum,
         clicks: adsClickSum,
-        ctr:
-          adsImpressionSum > 0 ? (adsClickSum / adsImpressionSum) * 100 : 0,
+        ctr: adsImpressionSum > 0 ? (adsClickSum / adsImpressionSum) * 100 : 0,
       },
     };
   }
@@ -174,8 +168,7 @@ export async function fetchSheetsData(
   );
 
   const useAll =
-    plazaIds.length === 0 ||
-    (plazaIds.length === 1 && plazaIds[0] === "all");
+    plazaIds.length === 0 || (plazaIds.length === 1 && plazaIds[0] === "all");
   const selectedPlazas: PlazaConfig[] = useAll
     ? PLAZAS
     : PLAZAS.filter((p) => plazaIds.includes(p.id));
