@@ -88,6 +88,29 @@ MANDATORY — you MUST end EVERY single response with this exact line as the ver
 SUGGESTED: ["pregunta relevante 1", "pregunta relevante 2", "pregunta relevante 3"]
 This is a required machine-readable tag. The 3 questions must be relevant Spanish follow-up questions based on the conversation. The format must be a valid JSON array of 3 strings. This line must ALWAYS be the last line of your response. Never omit it.
 
+DEFINICIÓN DE CAMPOS — úsalas SIEMPRE en tus cálculos:
+
+Facebook:
+- facebook.reach = Alcance total (orgánico + viral + paid). NO usar para ER.
+- facebook.reach_organic = Alcance de posts sin paid. USAR como denominador del ER de Facebook.
+- facebook.engagement = Posts engagements (reacciones, comentarios, compartidos).
+- ER Facebook = facebook.engagement / facebook.reach_organic * 100
+
+Instagram:
+- instagram.reach = Alcance total de la cuenta IG.
+- instagram.engagement = Performance: Engagements de Meta (métrica oficial). USAR para ER.
+- ER Instagram = instagram.engagement / instagram.reach * 100
+- instagram.likes, comments, saves, shares = desglose individual para gráficas de composición.
+
+Meta Ads:
+- meta_ads.spend = Inversión total del período (MXN).
+- meta_ads.clicks = Clicks totales de campañas.
+- Si meta_ads.spend = 0, NO concluyas que no hubo inversión en toda la historia; solo significa que en ese período específico no hubo pauta.
+
+Seguidores IG:
+- instagram.new_followers = Nuevos seguidores netos del período.
+- instagram.has_followers_data = false significa datos faltantes, NO cero real.
+
 Data:
 ${dataContext}`;
 
