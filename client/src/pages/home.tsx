@@ -854,7 +854,7 @@ function DynamicChart({ chartData }: { chartData: ChartData }) {
 }
 
 const EMPTY_MONTHLY: MonthlyData = {
-  facebook: { reach: 0, engagement: 0, followers_total: 0 },
+  facebook: { reach: 0, reach_organic: 0, engagement: 0, followers_total: 0 },
   instagram: { reach: 0, engagement: 0, new_followers: 0, likes: 0, comments: 0, saves: 0, shares: 0 },
   meta_ads: { spend: 0, impressions: 0, clicks: 0, ctr: 0 },
 };
@@ -862,7 +862,7 @@ const EMPTY_MONTHLY: MonthlyData = {
 function computeFallbackMonths(): string[] {
   const now = new Date();
   const months: string[] = [];
-  for (let i = 4; i >= 1; i--) {
+  for (let i = 3; i >= 1; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, "0");
