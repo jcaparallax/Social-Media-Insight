@@ -47,7 +47,9 @@ A social media analytics chat app for marketing agency Parallax, serving client 
 - Default: all selected
 - Changing selection re-fetches data and updates dashboard
 
-### KPI Cards (6 cards)
+### KPI Cards (6 cards, each with expandable context)
+Each card uses a `KpiCard` wrapper component with a chevron-down toggle (bottom-right) that expands a context section (bg-muted/40, text-xs) with explanatory text. Collapsed by default, each card manages its own open/closed state.
+
 1. **Alcance Orgánico FB** — Facebook organic reach as primary value, total reach (with paid) shown as secondary muted line, deltas vs previous month and 3 months ago
 2. **Eng. Rate Facebook** — fb.engagement / fb.reach_organic * 100 (falls back to fb.reach if organic is 0), delta vs previous month (pp)
 3. **Eng. Rate Instagram** — (ig.likes + ig.comments + ig.saves + ig.shares) / ig.reach * 100, delta vs previous month (pp)

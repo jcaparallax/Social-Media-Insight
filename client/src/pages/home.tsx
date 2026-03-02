@@ -383,6 +383,32 @@ function PlazaMultiSelect({
   );
 }
 
+function KpiCard({ children, contextText, className = "", id }: { children: React.ReactNode; contextText: string; className?: string; id: string }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className={`bg-card rounded-xl border border-card-border shadow-sm ${className}`}>
+      <div className="p-4 relative">
+        {children}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="absolute bottom-2 right-2 p-1 text-muted-foreground hover:text-foreground transition-colors"
+          data-testid={`button-kpi-context-${id}`}
+        >
+          <ChevronDown
+            className={`w-3.5 h-3.5 transition-transform duration-200 ease-in-out ${expanded ? "rotate-180" : ""}`}
+          />
+        </button>
+      </div>
+      {expanded && (
+        <div className="bg-muted/40 rounded-b-xl px-4 py-3">
+          <p className="text-xs text-muted-foreground leading-relaxed">{contextText}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function KpiCards({ data }: { data: AggregatedData }) {
   const months = data.months;
   if (months.length < 2) return null;
@@ -418,7 +444,7 @@ function KpiCards({ data }: { data: AggregatedData }) {
 
   return (
     <div className="grid grid-cols-2 xl:grid-cols-3 gap-3 mb-5">
-      <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
+      <KpiCard id="fb-reach" contextText="Alcance de publicaciones sin incluir campañas de paid media. Refleja el rendimiento real del contenido orgánico.">
         <div className="flex items-center gap-2 mb-1">
           <SiFacebook className="text-[#1877F2]" size={14} />
           <p className="text-xs font-bold text-[#392e22]">Alcance Orgánico FB</p>
@@ -434,9 +460,9 @@ function KpiCards({ data }: { data: AggregatedData }) {
           <DeltaBadge value={pctDelta(curFbReachOrganic, oldFbReachOrganic)} />
           <span className="text-[10px] text-muted-foreground">vs 3 meses</span>
         </div>
-      </div>
+      </KpiCard>
 
-      <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
+      <KpiCard id="fb-eng-rate" contextText="Calculado sobre alcance orgánico. Un ER alto con alcance bajo puede indicar una audiencia pequeña muy activa — revisar volumen antes de reportar.">
         <div className="flex items-center gap-2 mb-1">
           <SiFacebook className="text-[#1877F2]" size={14} />
           <p className="text-xs font-bold text-[#392e22]">Eng. Rate Facebook</p>
@@ -447,9 +473,9 @@ function KpiCards({ data }: { data: AggregatedData }) {
           <DeltaBadge value={+(curFbEngRate - prevFbEngRate).toFixed(2)} suffix="pp" />
           <span className="text-[10px] text-muted-foreground">vs mes anterior</span>
         </div>
-      </div>
+      </KpiCard>
 
-      <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
+      <KpiCard id="ig-eng-rate" contextText="Suma de likes, comentarios, guardados y compartidos sobre el alcance total. Benchmark promedio de industria: 1–3%.">
         <div className="flex items-center gap-2 mb-1">
           <SiInstagram className="text-[#E1306C]" size={14} />
           <p className="text-xs font-bold text-[#392e22]">Eng. Rate Instagram</p>
@@ -460,9 +486,9 @@ function KpiCards({ data }: { data: AggregatedData }) {
           <DeltaBadge value={+(curIgEngRate - prevIgEngRate).toFixed(2)} suffix="pp" />
           <span className="text-[10px] text-muted-foreground">vs mes anterior</span>
         </div>
-      </div>
+      </KpiCard>
 
-      <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
+      <KpiCard id="total-interactions" contextText="Incluye todas las interacciones de FB e IG: reacciones, comentarios, guardados y compartidos.">
         <p className="text-xs mb-1 font-bold text-[#392e22]">Interacciones Totales</p>
         <p className="text-2xl font-bold text-foreground" data-testid="text-total-interactions">{formatNumber(curEngagements)}</p>
         <p className="text-[10px] text-muted-foreground">IG + FB — {currentLabel}</p>
@@ -470,9 +496,9 @@ function KpiCards({ data }: { data: AggregatedData }) {
           <DeltaBadge value={pctDelta(curEngagements, prevEngagements)} />
           <span className="text-[10px] text-muted-foreground">vs mes anterior</span>
         </div>
-      </div>
+      </KpiCard>
 
-      <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm">
+      <KpiCard id="ig-followers" contextText="Seguidores netos ganados en el período según Instagram Followers Insights. Meses sin datos aparecen como N/D.">
         <div className="flex items-center gap-2 mb-1">
           <SiInstagram className="text-[#E1306C]" size={14} />
           <p className="text-xs font-bold text-[#392e22]">Nuevos Seguidores IG</p>
@@ -489,9 +515,9 @@ function KpiCards({ data }: { data: AggregatedData }) {
             {igFollowersDelta >= 0 ? "+" : ""}{igFollowersDelta} vs mes anterior
           </p>
         )}
-      </div>
+      </KpiCard>
 
-      <div className="bg-card rounded-xl p-4 border border-card-border shadow-sm col-span-2 xl:col-span-1">
+      <KpiCard id="meta-spend" contextText="Inversión total en campañas Meta Ads del período. No incluye otras plataformas de paid media." className="col-span-2 xl:col-span-1">
         <p className="text-xs mb-1 font-bold text-[#392e22]">Gasto Meta Ads</p>
         <p className="text-2xl font-bold text-foreground" data-testid="text-meta-spend">{formatCurrency(cur.meta_ads.spend)}</p>
         {cur.meta_ads.spend === 0 ? (
@@ -505,7 +531,7 @@ function KpiCards({ data }: { data: AggregatedData }) {
             </div>
           </>
         )}
-      </div>
+      </KpiCard>
     </div>
   );
 }
