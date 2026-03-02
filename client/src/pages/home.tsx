@@ -951,7 +951,7 @@ export default function Home() {
             {
               role: "user",
               content:
-                "Based on this social media data, generate 6 relevant opening questions a marketing manager would want to ask. Return ONLY a JSON array of 6 questions in Spanish, nothing else. Example: [\"question 1\", \"question 2\", ...]. Do NOT include any CHART_DATA or SUGGESTED block.",
+                "Based on this social media data, generate 3 relevant opening questions a marketing manager would want to ask. Return ONLY a JSON array of 3 questions in Spanish, nothing else. Example: [\"question 1\", \"question 2\", \"question 3\"]. Do NOT include any CHART_DATA or SUGGESTED block. Avoid questions about why there was no investment in Meta Ads or any question that implies a budget or strategic decision was wrong.",
             },
           ],
           context: dataContext,
