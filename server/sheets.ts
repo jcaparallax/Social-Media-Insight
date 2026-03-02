@@ -38,12 +38,23 @@ async function readSheet(sheetName: string): Promise<Record<string, string>[]> {
   const rows = res.data.values;
   if (!rows || rows.length < 2) return [];
   const headers = rows[0] as string[];
-  return rows.slice(1).map((row) => {
+  const parsed = rows.slice(1).map((row) => {
     const obj: Record<string, string> = {};
     headers.forEach((h, i) => {
       obj[h] = (row as string[])[i] ?? "";
     });
     return obj;
+  });
+  // Deduplicar filas idénticas (mismo Account + Start date) que Coupler a veces duplica
+  const seen = new Set<string>();
+  return parsed.filter((row) => {
+    const key = [
+      row["Account: Account name"] || "",
+      row["Report: Start date"] || row["Report: Date"] || row["Post: Post id"] || "",
+    ].join("|");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 }
 
