@@ -125,7 +125,7 @@ function buildMonthlyData(
     const igFollowersMonth = igFollowersByMonth[ym] || [];
     const adsMonth = adsByMonth[ym] || [];
 
-    const adsClickSum = sumField(adsMonth, "Performance: Link clicks");
+    const adsClickSum = sumField(adsMonth, "Performance: Clicks");
     const adsImpressionSum = sumField(adsMonth, "Performance: Impressions");
 
     monthly[ym] = {
