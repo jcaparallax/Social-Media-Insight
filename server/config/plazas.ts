@@ -14,6 +14,34 @@ export const PLAZAS: PlazaConfig[] = [
     igAccount: "patiosantafe",
     adsCampaignKeyword: "f1_01sfe",
   },
+  {
+    id: "patio-universidad",
+    displayName: "Patio Universidad",
+    fbAccount: "Patio Universidad",
+    igAccount: "patiouniversidad",
+    adsCampaignKeyword: "f1_02uni",
+  },
+  {
+    id: "portal-centro",
+    displayName: "Portal Centro",
+    fbAccount: "Portal Centro",
+    igAccount: "portal_centro",
+    adsCampaignKeyword: "f1_03bot",
+  },
+  {
+    id: "city-center-merida",
+    displayName: "City Center Mérida",
+    fbAccount: "City Center Merida",
+    igAccount: "citycentermerida",
+    adsCampaignKeyword: "f1_05ccm",
+  },
+  {
+    id: "patio-merida",
+    displayName: "Patio Mérida",
+    fbAccount: "Patio Mérida",
+    igAccount: "patiomerida",
+    adsCampaignKeyword: "f1_08mer",
+  },
 ];
 
 export function getPlazaById(id: string): PlazaConfig | undefined {
