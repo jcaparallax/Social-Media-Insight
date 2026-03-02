@@ -424,16 +424,16 @@ function KpiCards({ data }: { data: AggregatedData }) {
   const prevFbReachOrganic = prv.facebook.reach_organic || 0;
   const oldFbReachOrganic = old.facebook.reach_organic || 0;
 
-  const curEngagements = cur.instagram.likes + cur.instagram.comments + cur.instagram.saves + cur.instagram.shares + cur.facebook.engagement;
-  const prevEngagements = prv.instagram.likes + prv.instagram.comments + prv.instagram.saves + prv.instagram.shares + prv.facebook.engagement;
+  const curEngagements = cur.instagram.engagement + cur.facebook.engagement;
+  const prevEngagements = prv.instagram.engagement + prv.facebook.engagement;
 
   const curFbEngDenom = cur.facebook.reach_organic > 0 ? cur.facebook.reach_organic : cur.facebook.reach;
   const prevFbEngDenom = prv.facebook.reach_organic > 0 ? prv.facebook.reach_organic : prv.facebook.reach;
   const curFbEngRate = curFbEngDenom > 0 ? +(cur.facebook.engagement / curFbEngDenom * 100).toFixed(2) : 0;
   const prevFbEngRate = prevFbEngDenom > 0 ? +(prv.facebook.engagement / prevFbEngDenom * 100).toFixed(2) : 0;
 
-  const curIgEngTotal = cur.instagram.likes + cur.instagram.comments + cur.instagram.saves + cur.instagram.shares;
-  const prevIgEngTotal = prv.instagram.likes + prv.instagram.comments + prv.instagram.saves + prv.instagram.shares;
+  const curIgEngTotal = cur.instagram.engagement;
+  const prevIgEngTotal = prv.instagram.engagement;
   const curIgEngRate = cur.instagram.reach > 0 ? +(curIgEngTotal / cur.instagram.reach * 100).toFixed(2) : 0;
   const prevIgEngRate = prv.instagram.reach > 0 ? +(prevIgEngTotal / prv.instagram.reach * 100).toFixed(2) : 0;
 
@@ -549,7 +549,7 @@ function PlatformTable({ data }: { data: AggregatedData }) {
   const prvFbReachOrg = prv.facebook.reach_organic || 0;
   const fbEngDenom = curFbReachOrg > 0 ? curFbReachOrg : cur.facebook.reach;
   const fbEngRate = fbEngDenom > 0 ? +(cur.facebook.engagement / fbEngDenom * 100).toFixed(2) : 0;
-  const igEngRate = cur.instagram.reach > 0 ? +((cur.instagram.likes + cur.instagram.comments + cur.instagram.saves + cur.instagram.shares) / cur.instagram.reach * 100).toFixed(2) : 0;
+  const igEngRate = cur.instagram.reach > 0 ? +(cur.instagram.engagement / cur.instagram.reach * 100).toFixed(2) : 0;
 
   const rows = [
     {
@@ -568,7 +568,7 @@ function PlatformTable({ data }: { data: AggregatedData }) {
       color: "#E1306C",
       icon: <SiInstagram size={14} />,
       reach: cur.instagram.reach,
-      interactions: cur.instagram.likes + cur.instagram.comments + cur.instagram.saves + cur.instagram.shares,
+      interactions: cur.instagram.engagement,
       engRate: igEngRate,
       newFollowers: formatNumber(cur.instagram.new_followers),
       vsPrev: pctDelta(cur.instagram.reach, prv.instagram.reach),
@@ -645,7 +645,7 @@ function DefaultCharts({ data }: { data: AggregatedData }) {
     const fbOrg = m.facebook.reach_organic || 0;
     const fbDenom = fbOrg > 0 ? fbOrg : m.facebook.reach;
     const fbRate = fbDenom > 0 ? +(m.facebook.engagement / fbDenom * 100).toFixed(2) : 0;
-    const igTotal = m.instagram.likes + m.instagram.comments + m.instagram.saves + m.instagram.shares;
+    const igTotal = m.instagram.engagement;
     const igRate = m.instagram.reach > 0 ? +(igTotal / m.instagram.reach * 100).toFixed(2) : 0;
     return { name: getMonthLabel(ym), Facebook: fbRate, Instagram: igRate };
   });
