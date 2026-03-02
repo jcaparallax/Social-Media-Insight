@@ -225,12 +225,8 @@ export async function fetchSheetsData(
       return acct === plaza.fbAccount || acct === plaza.igAccount;
     });
 
-    // No hay fecha de publicación confiable en el sheet — usar todos los posts de la plaza
-    // ordenados por engagements. Coupler ya filtra el período relevante en la sincronización.
-    const sortedPosts = [...plazaPostRows].sort(
-      (a, b) => parseNum(b["Performance: Engagements"]) - parseNum(a["Performance: Engagements"]),
-    );
-    const topPosts: TopPost[] = sortedPosts.slice(0, 5).map((r) => ({
+    // Top 5 por plataforma (IG y FB por separado) ordenados por engagements
+    const mapPost = (r: Record<string, string>): TopPost => ({
       postId: r["Post: Post id"] || "",
       platform: r["Post: Platform"] || "",
       link: r["Post: Post link"] || "",
@@ -242,7 +238,14 @@ export async function fetchSheetsData(
       comments: parseNum(r["Engagement: Comments"]),
       shares: parseNum(r["Engagement: Shares"]),
       thumbnailUrl: r["Post: Thumbnail URL"] || "",
-    }));
+    });
+
+    const sortByEng = (rows: Record<string, string>[]) =>
+      [...rows].sort((a, b) => parseNum(b["Performance: Engagements"]) - parseNum(a["Performance: Engagements"]));
+
+    const igPosts = sortByEng(plazaPostRows.filter(r => r["Post: Platform"] === "Instagram")).slice(0, 5).map(mapPost);
+    const fbPosts = sortByEng(plazaPostRows.filter(r => r["Post: Platform"] === "Facebook")).slice(0, 5).map(mapPost);
+    const topPosts: TopPost[] = [...igPosts, ...fbPosts];
 
     const monthly = buildMonthlyData(
       targetMonths,

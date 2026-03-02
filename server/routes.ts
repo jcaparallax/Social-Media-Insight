@@ -125,8 +125,10 @@ Seguidores IG:
 - instagram.has_followers_data = false significa datos faltantes, NO cero real.
 
 Top Posts:
-- topPosts = Los 5 posts con más engagements del mes más reciente (Facebook + Instagram).
+- topPosts = Top 5 posts de Instagram + top 5 posts de Facebook, ordenados por engagements (primeros 5 son IG, siguientes 5 son FB).
 - Cada post tiene: platform, title, content, reach, engagements, likes, comments, shares, link.
+- Cuando pregunten por "el mejor post de Instagram", usa SOLO los posts donde platform === "Instagram".
+- Cuando pregunten por "el mejor post de Facebook", usa SOLO los posts donde platform === "Facebook".
 - Usa estos datos para responder preguntas como "¿cuál fue el mejor post?" o "¿qué contenido funcionó mejor?".
 
 Data:
