@@ -47,7 +47,7 @@ function getMonthYear(ym: string): string {
 }
 
 interface MonthlyData {
-  facebook: { reach: number; reach_organic: number; engagement: number; followers_total: number };
+  facebook: { reach: number; reach_organic: number; engagement: number; followers_total: number; new_followers: number };
   instagram: { reach: number; engagement: number; new_followers: number; likes: number; comments: number; saves: number; shares: number; has_followers_data: boolean };
   meta_ads: { spend: number; impressions: number; clicks: number; ctr: number };
 }
@@ -854,7 +854,7 @@ function DynamicChart({ chartData }: { chartData: ChartData }) {
 }
 
 const EMPTY_MONTHLY: MonthlyData = {
-  facebook: { reach: 0, reach_organic: 0, engagement: 0, followers_total: 0 },
+  facebook: { reach: 0, reach_organic: 0, engagement: 0, followers_total: 0, new_followers: 0 },
   instagram: { reach: 0, engagement: 0, new_followers: 0, likes: 0, comments: 0, saves: 0, shares: 0 },
   meta_ads: { spend: 0, impressions: 0, clicks: 0, ctr: 0 },
 };

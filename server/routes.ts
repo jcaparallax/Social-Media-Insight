@@ -62,7 +62,19 @@ export async function registerRoutes(
           }
         }
 
-        dataContext = JSON.stringify(sheetsData, null, 2);
+        // Build top posts summary for each plaza so the AI can reference them
+        let topPostsContext = "";
+        for (const [plazaId, plazaData] of Object.entries(sheetsData.plazas)) {
+          if (plazaData.topPosts && plazaData.topPosts.length > 0) {
+            topPostsContext += `\n\nTop 5 posts for ${plazaId} (most recent month):\n`;
+            plazaData.topPosts.forEach((p, i) => {
+              const snippet = p.content.length > 120 ? p.content.slice(0, 120) + "…" : p.content;
+              topPostsContext += `${i + 1}. [${p.platform}] "${p.title || snippet}"\n   Reach: ${p.reach} | Engagements: ${p.engagements} | Likes: ${p.likes} | Comments: ${p.comments} | Shares: ${p.shares}\n   Link: ${p.link}\n`;
+            });
+          }
+        }
+
+        dataContext = JSON.stringify(sheetsData, null, 2) + topPostsContext;
       }
 
       const plazaNames = plazaIds && plazaIds.length > 0 && plazaIds[0] !== "all"
@@ -94,6 +106,7 @@ Facebook:
 - facebook.reach = Alcance total (orgánico + viral + paid). NO usar para ER.
 - facebook.reach_organic = Alcance de posts sin paid. USAR como denominador del ER de Facebook.
 - facebook.engagement = Posts engagements (reacciones, comentarios, compartidos).
+- facebook.new_followers = Nuevos seguidores de la página FB en el período.
 - ER Facebook = facebook.engagement / facebook.reach_organic * 100
 
 Instagram:
@@ -110,6 +123,11 @@ Meta Ads:
 Seguidores IG:
 - instagram.new_followers = Nuevos seguidores netos del período.
 - instagram.has_followers_data = false significa datos faltantes, NO cero real.
+
+Top Posts:
+- topPosts = Los 5 posts con más engagements del mes más reciente (Facebook + Instagram).
+- Cada post tiene: platform, title, content, reach, engagements, likes, comments, shares, link.
+- Usa estos datos para responder preguntas como "¿cuál fue el mejor post?" o "¿qué contenido funcionó mejor?".
 
 Data:
 ${dataContext}`;

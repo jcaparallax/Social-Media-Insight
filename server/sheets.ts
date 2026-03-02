@@ -4,6 +4,7 @@ import type {
   MonthlyData,
   PlazaData,
   SheetsDataResponse,
+  TopPost,
 } from "@shared/schema";
 
 const SPREADSHEET_ID = "15PdHhPO-ecHavV27SLfkh6Nx-fXGM06As0-5O_i8vvs";
@@ -12,6 +13,8 @@ const SHEET_NAMES = [
   "Instagram Page Insights",
   "Instagram Followers 30 días",
   "Meta Ads",
+  "Facebook Followers",
+  "Meta Post Engagament",
 ];
 
 function computeTargetMonths(): string[] {
@@ -98,11 +101,13 @@ function buildMonthlyData(
   igFiltered: Record<string, string>[],
   igFollowersFiltered: Record<string, string>[],
   adsFiltered: Record<string, string>[],
+  fbFollowersFiltered: Record<string, string>[],
 ): Record<string, MonthlyData> {
   const fbByMonth = groupByMonth(fbFiltered);
   const igByMonth = groupByMonth(igFiltered);
   const igFollowersByMonth = groupByMonth(igFollowersFiltered);
   const adsByMonth = groupByMonth(adsFiltered);
+  const fbFollowersByMonth = groupByMonth(fbFollowersFiltered);
 
   const sumField = (rows: Record<string, string>[], field: string) =>
     rows.reduce((acc, r) => acc + parseNum(r[field]), 0);
@@ -124,6 +129,7 @@ function buildMonthlyData(
     const igMonth = igByMonth[ym] || [];
     const igFollowersMonth = igFollowersByMonth[ym] || [];
     const adsMonth = adsByMonth[ym] || [];
+    const fbFollowersMonth = fbFollowersByMonth[ym] || [];
 
     const adsClickSum = sumField(adsMonth, "Performance: Clicks");
     const adsImpressionSum = sumField(adsMonth, "Performance: Impressions");
@@ -135,6 +141,7 @@ function buildMonthlyData(
         engagement: sumField(fbMonth, "Engagement: Posts engagements"),
         followers_total:
           latestFbFollowers(fbMonth) || latestFbFollowers(fbFiltered),
+        new_followers: sumField(fbFollowersMonth, "Engagement: Page follows"),
       },
       instagram: {
         reach: sumField(igMonth, "Performance: Reach"),
@@ -163,7 +170,7 @@ export async function fetchSheetsData(
 ): Promise<SheetsDataResponse> {
   const targetMonths = computeTargetMonths();
 
-  const [fbRows, igRows, igFollowersRows, adsRows] = await Promise.all(
+  const [fbRows, igRows, igFollowersRows, adsRows, fbFollowersRows, metaPostRows] = await Promise.all(
     SHEET_NAMES.map((name) => readSheet(name)),
   );
 
@@ -174,6 +181,9 @@ export async function fetchSheetsData(
     : PLAZAS.filter((p) => plazaIds.includes(p.id));
 
   const plazas: Record<string, PlazaData> = {};
+
+  // Determine the most recent target month for top posts filtering
+  const mostRecentMonth = targetMonths[targetMonths.length - 1];
 
   for (const plaza of selectedPlazas) {
     const fbFiltered = filterForPlaza(
@@ -192,6 +202,39 @@ export async function fetchSheetsData(
       plaza.igAccount,
     );
     const adsFiltered = filterAdsForPlaza(adsRows, plaza.adsCampaignKeyword);
+    const fbFollowersFiltered = filterForPlaza(
+      fbFollowersRows,
+      "Account: Account name",
+      plaza.fbAccount,
+    );
+
+    // Filter meta post rows for this plaza (match both FB and IG accounts)
+    const plazaPostRows = metaPostRows.filter((r) => {
+      const acct = r["Account: Account name"] || "";
+      return acct === plaza.fbAccount || acct === plaza.igAccount;
+    });
+
+    // Filter posts to the most recent month and pick top 5 by engagements
+    const postsByMonth = plazaPostRows.filter((r) => {
+      const dateStr = r["Report: Date"] || r["Row Updated At"] || "";
+      return getYearMonth(dateStr) === mostRecentMonth;
+    });
+    const sortedPosts = [...postsByMonth].sort(
+      (a, b) => parseNum(b["Performance: Engagements"]) - parseNum(a["Performance: Engagements"]),
+    );
+    const topPosts: TopPost[] = sortedPosts.slice(0, 5).map((r) => ({
+      postId: r["Post: Post id"] || "",
+      platform: r["Post: Platform"] || "",
+      link: r["Post: Post link"] || "",
+      title: r["Post: Post title"] || "",
+      content: r["Post: Post content"] || "",
+      reach: parseNum(r["Performance: Reach"]),
+      engagements: parseNum(r["Performance: Engagements"]),
+      likes: parseNum(r["Engagement: Likes"]),
+      comments: parseNum(r["Engagement: Comments"]),
+      shares: parseNum(r["Engagement: Shares"]),
+      thumbnailUrl: r["Post: Thumbnail URL"] || "",
+    }));
 
     const monthly = buildMonthlyData(
       targetMonths,
@@ -199,11 +242,13 @@ export async function fetchSheetsData(
       igFiltered,
       igFollowersFiltered,
       adsFiltered,
+      fbFollowersFiltered,
     );
 
     plazas[plaza.id] = {
       months: targetMonths,
       monthly,
+      topPosts,
     };
   }
 

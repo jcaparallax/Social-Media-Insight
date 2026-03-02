@@ -15,12 +15,27 @@ export const chatRequestSchema = z.object({
 export type ChatMessage = z.infer<typeof chatMessageSchema>;
 export type ChatRequest = z.infer<typeof chatRequestSchema>;
 
+export interface TopPost {
+  postId: string;
+  platform: string;
+  link: string;
+  title: string;
+  content: string;
+  reach: number;
+  engagements: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  thumbnailUrl: string;
+}
+
 export interface MonthlyData {
   facebook: {
     reach: number;
     reach_organic: number;
     engagement: number;
     followers_total: number;
+    new_followers: number;
   };
   instagram: {
     reach: number;
@@ -43,6 +58,7 @@ export interface MonthlyData {
 export interface PlazaData {
   months: string[];
   monthly: Record<string, MonthlyData>;
+  topPosts?: TopPost[];
 }
 
 export interface PlazaSummary {
